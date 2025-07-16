@@ -1,0 +1,24 @@
+# 코드 포맷팅
+black
+isort
+
+# 코드 품질 검사
+flake8
+flake8-docstrings
+mypy
+
+# 타입 힌트 지원
+types-requests
+types-PyYAML
+
+# 테스트 관련
+pytest
+pytest-asyncio
+pytest-cov
+httpx
+
+# Pre-commit 훅
+pre-commit
+
+# 개발 편의성
+python-dotenv 

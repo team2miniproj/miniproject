@@ -1,0 +1,37 @@
+# FastAPI 웹 프레임워크
+fastapi
+uvicorn
+
+# Firebase 연동
+firebase-admin
+
+# AI/ML 모델 및 자연어 처리
+transformers
+torch
+tokenizers
+accelerate
+numpy
+pandas
+
+# OpenAI API
+openai
+
+# 데이터 검증 및 처리
+pydantic
+pydantic-settings
+python-multipart
+aiofiles
+
+# 환경 설정 및 유틸리티
+python-dotenv
+requests
+
+# 이미지 처리
+pillow
+
+# 한국어 자연어 처리 (KoBERT, KoELECTRA, KoGPT 지원)
+sentencepiece
+
+# 테스트
+pytest
+httpx 
