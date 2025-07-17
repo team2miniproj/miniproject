@@ -16,7 +16,6 @@ import { LockProvider } from "@/contexts/LockContext";
 import Bookmarks from "@/pages/Bookmarks";
 import DiaryGeneration from "@/pages/DiaryGeneration";
 import DiaryFeedback from "@/pages/DiaryFeedback";
-import TextEdit from "@/pages/TextEdit";
 
 function App() {
   return (
@@ -45,14 +44,6 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Recording />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/text-edit"
-              element={
-                <ProtectedRoute>
-                  <TextEdit />
                 </ProtectedRoute>
               }
             />

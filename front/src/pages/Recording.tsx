@@ -90,42 +90,25 @@ const Recording = () => {
       
       if (audioBlob.size === 0) {
         console.error('오디오 파일이 비어있습니다!');
-        navigate('/emotion-selection');
+        navigate('/');
         return;
       }
       
-      const audioFile = new File([audioBlob], 'recording.wav', { type: 'audio/wav' });
+      // 오디오 블롭을 base64로 변환
+      const reader = new FileReader();
+      reader.readAsDataURL(audioBlob);
+      reader.onloadend = function() {
+        const base64Audio = reader.result as string;
+        // base64 문자열에서 'data:audio/wav;base64,' 부분을 제거
+        const base64Data = base64Audio.split(',')[1];
+        localStorage.setItem('audioBlob', base64Data);
+        // DiaryGeneration 페이지로 이동
+        navigate('/diary-generation');
+      };
       
-      // FormData 생성
-      const formData = new FormData();
-      formData.append('audio', audioFile);
-      
-      // STT 서버에 실제 API 호출
-      const response = await fetch('http://localhost:8000/api/speech-to-text', {
-        method: 'POST',
-        body: formData
-      });
-      
-      if (!response.ok) {
-        throw new Error(`STT 서버 오류: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        // 변환된 텍스트를 TextEdit 페이지로 전달
-        navigate('/text-edit', {
-          state: { text: result.text, audioFile: audioFile }
-        });
-      } else {
-        console.error('STT 변환 실패:', result.error);
-        // 오류 시 감정 선택 페이지로 이동 (백업)
-        navigate('/emotion-selection');
-      }
     } catch (error) {
       console.error('음성 처리 실패:', error);
-      // 오류 시 감정 선택 페이지로 이동 (백업)
-      navigate('/emotion-selection');
+      navigate('/');
     } finally {
       setIsProcessing(false);
     }

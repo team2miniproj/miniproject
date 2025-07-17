@@ -56,6 +56,71 @@ class FeedbackResponse(BaseModel):
     style: str
     confidence: float
 
+class DiaryStyleRequest(BaseModel):
+    text: str
+    user_id: str = "default"
+
+class DiaryStyleResponse(BaseModel):
+    diary_text: str
+    confidence: float
+
+# 일기체 변환 엔진
+class DiaryStyleConverter:
+    def __init__(self):
+        self.diary_templates = {
+            "기쁨": [
+                "오늘은 정말 기쁜 하루였다. {content} 이런 순간들이 내 인생의 소중한 보물이 될 것 같다.",
+                "행복한 하루를 보냈다. {content} 이런 기쁨이 계속 이어졌으면 좋겠다.",
+                "오늘은 마음이 가벼웠다. {content} 정말 감사한 하루였다."
+            ],
+            "슬픔": [
+                "오늘은 마음이 무거웠다. {content} 이런 시간도 지나가겠지. 내일은 더 나은 날이 올 것이다.",
+                "힘든 하루였다. {content} 하지만 이 또한 지나갈 것이다. 나는 강하다.",
+                "오늘은 눈물이 날 것 같은 하루였다. {content} 이런 감정도 자연스러운 것 같다."
+            ],
+            "분노": [
+                "오늘은 화가 났다. {content} 이런 감정을 느끼는 것도 당연한 일이다.",
+                "짜증나는 하루였다. {content} 하지만 이 감정도 곧 사라질 것이다.",
+                "오늘은 정말 속상했다. {content} 이런 일들이 있어도 나는 괜찮다."
+            ],
+            "두려움": [
+                "오늘은 불안한 하루였다. {content} 하지만 걱정만 해도 소용없다. 차근차근 해결해보자.",
+                "두려운 마음이 들었다. {content} 이런 감정도 자연스러운 것이다.",
+                "오늘은 마음이 편하지 않았다. {content} 내일은 더 나은 날이 될 것이다."
+            ],
+            "놀람": [
+                "오늘은 정말 놀라운 일이 있었다. {content} 이런 순간들이 인생을 재미있게 만드는 것 같다.",
+                "깜짝 놀란 하루였다. {content} 정말 뜻밖의 일이었다.",
+                "오늘은 예상치 못한 일이 있었다. {content} 이런 놀라움이 있어야 인생이 재미있는 것 같다."
+            ],
+            "혐오": [
+                "오늘은 정말 싫은 일이 있었다. {content} 이런 일들은 빨리 잊어버리고 싶다.",
+                "불쾌한 하루였다. {content} 하지만 이런 일들도 지나갈 것이다.",
+                "오늘은 정말 짜증나는 일이 있었다. {content} 이런 감정도 자연스러운 것이다."
+            ],
+            "중성": [
+                "오늘은 평범한 하루였다. {content} 이런 일상도 소중한 것 같다.",
+                "차분한 하루를 보냈다. {content} 때로는 이런 평온함이 필요하다.",
+                "오늘은 잔잔한 하루였다. {content} 이런 시간들도 의미가 있는 것 같다."
+            ]
+        }
+    
+    def convert_to_diary_style(self, text: str, emotion: str = "중성") -> DiaryStyleResponse:
+        """텍스트를 일기체로 변환"""
+        import random
+        
+        # 감정에 따른 템플릿 선택
+        templates = self.diary_templates.get(emotion, self.diary_templates["중성"])
+        template = random.choice(templates)
+        
+        # 템플릿에 내용 삽입
+        diary_text = template.format(content=text)
+        
+        return DiaryStyleResponse(
+            diary_text=diary_text,
+            confidence=random.uniform(0.8, 0.95)
+        )
+
 # 감정 분석 엔진
 class EmotionAnalyzer:
     def __init__(self):
@@ -305,6 +370,7 @@ class FeedbackGenerator:
 # 서비스 인스턴스 생성
 emotion_analyzer = EmotionAnalyzer()
 feedback_generator = FeedbackGenerator()
+diary_converter = DiaryStyleConverter()
 
 @app.get("/")
 async def root():
@@ -351,6 +417,30 @@ async def generate_feedback(request: FeedbackRequest):
     except Exception as e:
         logger.error(f"피드백 생성 중 오류: {e}")
         raise HTTPException(status_code=500, detail="피드백 생성 중 오류가 발생했습니다.")
+
+@app.options("/api/v1/diary/convert")
+async def options_convert_diary():
+    """일기체 변환 API OPTIONS 핸들러"""
+    return {"status": "ok"}
+
+@app.post("/api/v1/diary/convert")
+async def convert_to_diary_style(request: DiaryStyleRequest):
+    """일기체 변환 API"""
+    try:
+        if not request.text.strip():
+            raise HTTPException(status_code=400, detail="텍스트가 비어있습니다.")
+        
+        # 먼저 감정 분석을 수행하여 적절한 일기체 템플릿 선택
+        emotion_result = emotion_analyzer.analyze(request.text)
+        primary_emotion = emotion_result.primary_emotion
+        
+        # 일기체로 변환
+        result = diary_converter.convert_to_diary_style(request.text, primary_emotion)
+        return result
+        
+    except Exception as e:
+        logger.error(f"일기체 변환 중 오류: {e}")
+        raise HTTPException(status_code=500, detail="일기체 변환 중 오류가 발생했습니다.")
 
 if __name__ == "__main__":
     uvicorn.run(

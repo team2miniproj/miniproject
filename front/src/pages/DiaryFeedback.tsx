@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Brain, Heart, MessageSquare, Sparkles, BookOpen, Save } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { ArrowLeft, Save, Edit3, Calendar } from 'lucide-react';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase';
@@ -27,32 +27,67 @@ interface FeedbackData {
     confidence: number;
   };
   original_text: string;
+  diary_text?: string; // 일기체 변환된 텍스트 추가
+  comic_data: {
+    images: string[];
+    generated_text?: string;
+  };
+  selected_date?: string; // 선택된 날짜 추가
 }
 
 export default function DiaryFeedback() {
   const navigate = useNavigate();
-  const location = useLocation();
-
   const { currentUser } = useAuth();
   
   const [feedbackData, setFeedbackData] = useState<FeedbackData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedText, setEditedText] = useState('');
 
   useEffect(() => {
-    // location.state에서 분석 결과 받기
-    if (location.state?.feedbackData) {
-      setFeedbackData(location.state.feedbackData);
-      setIsLoading(false);
+    // localStorage에서 분석 결과 받기
+    const analysisResult = localStorage.getItem('analysisResult');
+    if (analysisResult) {
+      try {
+        const parsedData = JSON.parse(analysisResult);
+        setFeedbackData(parsedData);
+        // 일기체 변환된 텍스트가 있으면 사용, 없으면 원본 텍스트 사용
+        setEditedText(parsedData.diary_text || parsedData.original_text);
+        // 데이터를 사용했으니 삭제
+        localStorage.removeItem('analysisResult');
+      } catch (error) {
+        console.error('분석 결과 파싱 실패:', error);
+        navigate('/');
+      }
     } else {
-      // 데이터가 없으면 홈으로 리다이렉트
       console.error('분석 결과를 불러올 수 없습니다.');
       navigate('/');
     }
-  }, [location.state, navigate]);
+    setIsLoading(false);
+  }, [navigate]);
 
   const handleBack = () => {
-    navigate('/text-edit');
+    navigate('/');
+  };
+
+  const handleEdit = () => {
+    setIsEditing(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (feedbackData) {
+      setFeedbackData({
+        ...feedbackData,
+        original_text: editedText
+      });
+    }
+    setIsEditing(false);
+  };
+
+  const handleCancelEdit = () => {
+    setEditedText(feedbackData?.diary_text || feedbackData?.original_text || '');
+    setIsEditing(false);
   };
 
   const handleSaveDiary = async () => {
@@ -64,10 +99,21 @@ export default function DiaryFeedback() {
     setIsSaving(true);
 
     try {
+      // 선택된 날짜가 있으면 사용, 없으면 현재 날짜 사용
+      let dateToSave: Date;
+      if (feedbackData.selected_date) {
+        // YYYY-MM-DD 문자열을 Date 객체로 변환
+        const [year, month, day] = feedbackData.selected_date.split('-').map(Number);
+        dateToSave = new Date(year, month - 1, day); // month는 0-based
+      } else {
+        dateToSave = new Date();
+      }
+
       // Firebase Firestore에 일기 데이터 저장
       const diaryData = {
         uid: currentUser.uid,
-        text: feedbackData.original_text,
+        date: dateToSave, // Date 객체로 저장
+        text: editedText,
         emotion_analysis: {
           primary_emotion: feedbackData.emotion_analysis.primary_emotion,
           primary_emotion_score: feedbackData.emotion_analysis.primary_emotion_score,
@@ -80,19 +126,17 @@ export default function DiaryFeedback() {
           style: feedbackData.ai_feedback.style,
           confidence: feedbackData.ai_feedback.confidence
         },
+        comic_data: feedbackData.comic_data,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       };
 
       // 'diaries' 컬렉션에 문서 추가
       const docRef = await addDoc(collection(db, 'diaries'), diaryData);
-      
       console.log('일기 저장 성공, Document ID:', docRef.id);
       
-      // 로컬 스토리지에도 임시 저장 (오프라인 대응)
-      localStorage.setItem('lastDiaryFeedback', JSON.stringify(feedbackData));
-      
-      console.log('일기가 성공적으로 저장되었습니다.');
+      // 선택된 날짜 정보 삭제
+      localStorage.removeItem('selectedDate');
       
       navigate('/');
     } catch (error) {
@@ -103,51 +147,12 @@ export default function DiaryFeedback() {
     }
   };
 
-  const getEmotionColor = (emotion: string) => {
-    const colors: { [key: string]: string } = {
-      '기쁨': 'bg-yellow-100 text-yellow-800 border-yellow-300',
-      '슬픔': 'bg-blue-100 text-blue-800 border-blue-300',
-      '분노': 'bg-red-100 text-red-800 border-red-300',
-      '두려움': 'bg-purple-100 text-purple-800 border-purple-300',
-      '놀람': 'bg-orange-100 text-orange-800 border-orange-300',
-      '혐오': 'bg-gray-100 text-gray-800 border-gray-300',
-      '중성': 'bg-green-100 text-green-800 border-green-300'
-    };
-    return colors[emotion] || 'bg-gray-100 text-gray-800 border-gray-300';
-  };
-
-  const getFeedbackIcon = (style: string) => {
-    switch (style) {
-      case 'empathetic':
-        return <Heart className="w-5 h-5" />;
-      case 'encouraging':
-        return <Sparkles className="w-5 h-5" />;
-      case 'analytical':
-        return <Brain className="w-5 h-5" />;
-      default:
-        return <MessageSquare className="w-5 h-5" />;
-    }
-  };
-
-  const getFeedbackStyleName = (style: string) => {
-    switch (style) {
-      case 'empathetic':
-        return '공감형';
-      case 'encouraging':
-        return '격려형';
-      case 'analytical':
-        return '분석형';
-      default:
-        return '일반형';
-    }
-  };
-
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-peach-skin via-peach-skin/50 to-mint-aurora/30 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-rose-100 to-rose-200 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-mint-aurora mb-4 mx-auto"></div>
-          <p className="text-charcoal/70">피드백을 불러오는 중...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-500 mb-4 mx-auto"></div>
+          <p className="text-rose-800">AI 분석 결과를 불러오는 중...</p>
         </div>
       </div>
     );
@@ -155,9 +160,9 @@ export default function DiaryFeedback() {
 
   if (!feedbackData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-peach-skin via-peach-skin/50 to-mint-aurora/30 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-rose-100 to-rose-200 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-charcoal/70">분석 결과를 불러올 수 없습니다.</p>
+          <p className="text-rose-800">분석 결과를 불러올 수 없습니다.</p>
           <Button onClick={() => navigate('/')} className="mt-4">
             홈으로 돌아가기
           </Button>
@@ -167,134 +172,148 @@ export default function DiaryFeedback() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-peach-skin via-peach-skin/50 to-mint-aurora/30">
+    <div className="min-h-screen bg-gradient-to-br from-rose-100 to-rose-200">
       {/* 헤더 */}
-      <header className="flex items-center justify-between p-4 border-b border-charcoal/10">
+      <header className="flex items-center justify-between p-4 border-b border-rose-200">
         <Button 
           variant="ghost" 
           onClick={handleBack}
-          className="text-charcoal hover:bg-charcoal/5"
+          className="text-rose-800 hover:bg-rose-200/50"
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>
         
-        <h1 className="text-lg font-semibold text-charcoal">AI 분석 결과</h1>
+        <h1 className="text-lg font-semibold text-rose-800">AI 분석 결과</h1>
         
-        <div className="w-10" />
+        <div className="flex gap-2">
+          {!isEditing ? (
+            <Button
+              onClick={handleEdit}
+              variant="outline"
+              size="sm"
+              className="text-rose-800 border-rose-300 hover:bg-rose-200/50"
+            >
+              <Edit3 className="w-4 h-4 mr-1" />
+              수정
+            </Button>
+          ) : (
+            <>
+              <Button
+                onClick={handleSaveEdit}
+                variant="outline"
+                size="sm"
+                className="text-green-700 border-green-300 hover:bg-green-100"
+              >
+                저장
+              </Button>
+              <Button
+                onClick={handleCancelEdit}
+                variant="outline"
+                size="sm"
+                className="text-gray-700 border-gray-300 hover:bg-gray-100"
+              >
+                취소
+              </Button>
+            </>
+          )}
+        </div>
       </header>
 
       {/* 메인 콘텐츠 */}
-      <div className="p-6 space-y-6">
-        {/* 감정 분석 결과 */}
-        <Card className="bg-fog-white/80 backdrop-blur-sm border-charcoal/10">
+      <div className="p-6 space-y-6 max-w-4xl mx-auto">
+        {/* 생성된 만화 이미지 */}
+        {feedbackData.comic_data.images && feedbackData.comic_data.images.length > 0 && (
+          <Card className="bg-white/80 backdrop-blur-sm border-rose-200">
+            <CardHeader>
+              <CardTitle className="text-rose-800 flex items-center gap-2">
+                🎨 AI가 그린 4컷 만화
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex justify-center">
+                <img 
+                  src={feedbackData.comic_data.images[0]} 
+                  alt="AI 생성 만화"
+                  className="max-w-full h-auto rounded-lg shadow-lg"
+                  style={{ maxHeight: '600px' }}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* 오늘의 일기 */}
+        <Card className="bg-white/80 backdrop-blur-sm border-rose-200">
           <CardHeader>
-            <CardTitle className="text-charcoal flex items-center gap-2">
-              <Brain className="w-5 h-5" />
-              감정 분석 결과
+            <CardTitle className="text-rose-800 flex items-center gap-2">
+              <Calendar className="w-5 h-5" />
+              {feedbackData.selected_date ? 
+                `${feedbackData.selected_date}의 일기` : 
+                '오늘의 일기'
+              }
+              <span className="text-2xl ml-2">
+                {feedbackData.emotion_analysis.primary_emotion_emoji}
+              </span>
+              <span className="text-sm font-normal text-rose-600">
+                {feedbackData.emotion_analysis.primary_emotion}
+              </span>
             </CardTitle>
           </CardHeader>
-          
-          <CardContent className="space-y-4">
-            {/* 주요 감정 */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{feedbackData.emotion_analysis.primary_emotion_emoji}</span>
-                <div>
-                  <Badge className={getEmotionColor(feedbackData.emotion_analysis.primary_emotion)}>
-                    {feedbackData.emotion_analysis.primary_emotion}
-                  </Badge>
-                  <p className="text-sm text-charcoal/60 mt-1">
-                    신뢰도: {(feedbackData.emotion_analysis.primary_emotion_score * 100).toFixed(1)}%
-                  </p>
-                </div>
+          <CardContent>
+            {isEditing ? (
+              <Textarea
+                value={editedText}
+                onChange={(e) => setEditedText(e.target.value)}
+                className="min-h-[120px] resize-none border-rose-300 focus:border-rose-500"
+                placeholder="일기 내용을 입력하세요..."
+              />
+            ) : (
+              <div className="bg-rose-50/50 border border-rose-200 rounded-lg p-4">
+                <p className="text-rose-800 leading-relaxed whitespace-pre-wrap">
+                  {editedText}
+                </p>
               </div>
-            </div>
-
-            {/* 모든 감정 분석 */}
-            <div>
-              <h4 className="font-medium text-charcoal mb-3">세부 감정 분석</h4>
-              <div className="grid grid-cols-2 gap-2">
-                {feedbackData.emotion_analysis.all_emotions.map((emotion, index) => (
-                  <div key={index} className="flex items-center justify-between p-2 bg-fog-white/50 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <span>{emotion.emoji}</span>
-                      <span className="text-sm text-charcoal">{emotion.emotion}</span>
-                    </div>
-                    <span className="text-sm text-charcoal/60">
-                      {(emotion.score * 100).toFixed(1)}%
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 
         {/* AI 피드백 */}
-        <Card className="bg-fog-white/80 backdrop-blur-sm border-charcoal/10">
+        <Card className="bg-white/80 backdrop-blur-sm border-rose-200">
           <CardHeader>
-            <CardTitle className="text-charcoal flex items-center gap-2">
-              {getFeedbackIcon(feedbackData.ai_feedback.style)}
-              AI 피드백 ({getFeedbackStyleName(feedbackData.ai_feedback.style)})
+            <CardTitle className="text-rose-800 flex items-center gap-2">
+              💬 AI 피드백
+              <span className="text-sm font-normal text-rose-600">
+                ({feedbackData.ai_feedback.style === 'empathetic' ? '공감형' : 
+                  feedbackData.ai_feedback.style === 'encouraging' ? '격려형' : 
+                  feedbackData.ai_feedback.style === 'analytical' ? '분석형' : '일반형'})
+              </span>
             </CardTitle>
           </CardHeader>
-          
           <CardContent>
-            <div className="bg-mint-aurora/5 border border-mint-aurora/20 rounded-lg p-4">
-              <p className="text-charcoal leading-relaxed">
+            <div className="bg-rose-50/50 border border-rose-200 rounded-lg p-4">
+              <p className="text-rose-800 leading-relaxed">
                 {feedbackData.ai_feedback.feedback_text}
               </p>
-              <div className="mt-3 flex justify-end">
-                <span className="text-sm text-charcoal/60">
-                  신뢰도: {(feedbackData.ai_feedback.confidence * 100).toFixed(1)}%
-                </span>
-              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* 원본 텍스트 */}
-        <Card className="bg-fog-white/80 backdrop-blur-sm border-charcoal/10">
-          <CardHeader>
-            <CardTitle className="text-charcoal flex items-center gap-2">
-              <BookOpen className="w-5 h-5" />
-              원본 일기
-            </CardTitle>
-          </CardHeader>
-          
-          <CardContent>
-            <div className="bg-fog-white/50 border border-charcoal/10 rounded-lg p-4">
-              <p className="text-charcoal leading-relaxed">
-                {feedbackData.original_text}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* 하단 버튼 */}
-        <div className="flex gap-3">
-          <Button 
-            variant="outline" 
-            onClick={handleBack}
-            className="flex-1 border-charcoal/20 text-charcoal hover:bg-charcoal/5"
-          >
-            수정하기
-          </Button>
-          
-          <Button 
+        {/* 저장 버튼 */}
+        <div className="flex justify-center pt-6">
+          <Button
             onClick={handleSaveDiary}
             disabled={isSaving}
-            className="flex-1 bg-mint-aurora text-fog-white hover:bg-mint-aurora/90 disabled:opacity-50"
+            className="bg-rose-500 hover:bg-rose-600 text-white px-8 py-3 text-lg"
           >
             {isSaving ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-fog-white mr-2"></div>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
                 저장 중...
               </>
             ) : (
               <>
-                <Save className="w-4 h-4 mr-2" />
-                일기 저장
+                <Save className="w-5 h-5 mr-2" />
+                일기 저장하기
               </>
             )}
           </Button>

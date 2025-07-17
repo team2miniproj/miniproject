@@ -30,6 +30,7 @@ import { useAuth } from "@/contexts/AuthContext";
 interface DiaryItem {
   id: string;
   text: string;
+  date: any; // Date 객체 추가
   emotion_analysis: {
     primary_emotion: string;
     primary_emotion_score: number;
@@ -86,6 +87,17 @@ const sampleBookmarks = [
   },
 ];
 
+// 감정별 색상 매핑 함수
+const emotionColorMap: Record<string, string> = {
+  기쁨: "#FFD93D",
+  슬픔: "#6C9BCF",
+  분노: "#FF6B6B",
+  두려움: "#8B1874",
+  놀람: "#95BDFF",
+  혐오: "#4C3D3D",
+  중성: "#B4B4B3"
+};
+
 export default function Home() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
@@ -136,9 +148,30 @@ export default function Home() {
   const handleDateSelect = (date: Date | undefined) => {
     if (!date) return;
 
+    console.log('선택된 날짜:', date.toISOString());
+    console.log('저장된 일기들:', diaries.map(d => ({
+      id: d.id,
+      date: d.date,
+      dateType: typeof d.date,
+      hasToDate: typeof d.date?.toDate === 'function'
+    })));
+
     const selectedDiary = diaries.find((diary) => {
-      if (!diary.createdAt) return false;
-      const diaryDate = diary.createdAt.toDate();
+      if (!diary.date) return false;
+      
+      // Firestore Timestamp 객체인 경우 Date로 변환
+      const diaryDate = typeof diary.date?.toDate === 'function' 
+        ? diary.date.toDate() 
+        : diary.date;
+      
+      console.log('비교 중:', {
+        diaryDate: diaryDate.toISOString(),
+        selectedDate: date.toISOString(),
+        yearMatch: diaryDate.getFullYear() === date.getFullYear(),
+        monthMatch: diaryDate.getMonth() === date.getMonth(),
+        dayMatch: diaryDate.getDate() === date.getDate()
+      });
+      
       return (
         diaryDate.getFullYear() === date.getFullYear() &&
         diaryDate.getMonth() === date.getMonth() &&
@@ -146,11 +179,15 @@ export default function Home() {
       );
     });
 
+    console.log('찾은 일기:', selectedDiary);
+
     if (selectedDiary) {
       // 일기가 있는 경우 상세 페이지로 이동
       navigate(`/diary/${selectedDiary.id}`);
     } else {
-      // 일기가 없는 경우 작성 다이얼로그 표시
+      // 일기가 없는 경우 선택한 날짜를 저장하고 다이얼로그 표시
+      const dateString = date.toISOString().split('T')[0]; // YYYY-MM-DD 형식
+      localStorage.setItem('selectedDate', dateString);
       setShowDialog(true);
     }
   };
@@ -164,10 +201,43 @@ export default function Home() {
     }
   };
 
+  // 날짜별 감정 매핑 (YYYY-MM-DD -> 감정명)
+  const diaryEmotionByDate: Record<string, string> = {};
+  diaries.forEach(diary => {
+    if (diary.date) {
+      // Firestore Timestamp 객체인 경우 Date로 변환
+      const dateObj = typeof diary.date?.toDate === 'function' 
+        ? diary.date.toDate() 
+        : diary.date;
+      const dateString = dateObj.toISOString().split('T')[0];
+      diaryEmotionByDate[dateString] = diary.emotion_analysis.primary_emotion;
+    }
+  });
+
+  // Calendar modifiers/스타일 지정
+  const emotionModifiers: Record<string, Date[]> = {};
+  Object.entries(diaryEmotionByDate).forEach(([dateString, emotion]) => {
+    if (!emotionModifiers[emotion]) emotionModifiers[emotion] = [];
+    const [year, month, day] = dateString.split('-').map(Number);
+    // month는 0-based 아님 (Date 생성자에서 0-based)
+    emotionModifiers[emotion].push(new Date(year, month - 1, day));
+  });
+
+  // 감정별 스타일
+  const emotionModifiersStyles: Record<string, React.CSSProperties> = {};
+  emotions.forEach(e => {
+    emotionModifiersStyles[e.name] = {
+      backgroundColor: e.color,
+      color: '#fff',
+      borderRadius: '8px',
+      fontWeight: 600
+    };
+  });
+
   // 일기가 있는 날짜 계산
   const hasDiaryDates = diaries
-    .filter(diary => diary.createdAt)
-    .map(diary => diary.createdAt.toDate())
+    .filter(diary => diary.date)
+    .map(diary => diary.date)
     .filter(date => date instanceof Date && !isNaN(date.getTime()));
 
   return (
@@ -214,16 +284,8 @@ export default function Home() {
               mode="single"
               selected={selectedDate}
               onSelect={handleDateSelect}
-              modifiers={{ 
-                highlighted: hasDiaryDates 
-              }}
-              modifiersStyles={{
-                highlighted: {
-                  backgroundColor: "rgb(251 146 60 / 0.2)",
-                  color: "rgb(251 146 60)",
-                  fontWeight: "bold"
-                }
-              }}
+              modifiers={emotionModifiers}
+              modifiersStyles={emotionModifiersStyles}
               disabled={{ before: new Date(2024, 0, 1) }}
               fromDate={new Date(2024, 0, 1)}
               toDate={new Date(2025, 11, 31)}
@@ -281,7 +343,9 @@ export default function Home() {
                           {diary.emotion_analysis.primary_emotion}
                         </span>
                         <span className="text-xs text-gray-500">
-                          {diary.createdAt && new Date(diary.createdAt.toDate()).toLocaleDateString()}
+                          {diary.date && (typeof diary.date?.toDate === 'function' 
+                            ? diary.date.toDate().toLocaleDateString()
+                            : new Date(diary.date).toLocaleDateString())}
                         </span>
                       </div>
                       <p className="text-sm text-gray-600 line-clamp-2">
