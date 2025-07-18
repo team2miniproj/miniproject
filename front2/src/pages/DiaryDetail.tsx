@@ -10,12 +10,12 @@ import HandDrawnGrid from './HandDrawnGrid';
 const fontUrl = '/src/assets/fonts/HakgyoansimDoldamB.otf';
 
 const weatherOptions = [
-  { label: "맑음", icon: <Sun className="w-6 h-6" style={{color:'#EB5405'}} /> },
-  { label: "구름", icon: <Cloud className="w-6 h-6" style={{color:'#A7C7E7'}} /> },
-  { label: "흐림", icon: <Cloud className="w-6 h-6 text-gray-400" /> },
-  { label: "비", icon: <Umbrella className="w-6 h-6" style={{color:'#7FC8A9'}} /> },
-  { label: "천둥", icon: <CloudLightning className="w-6 h-6" style={{color:'#FFD600'}} /> },
-  { label: "눈", icon: <CloudSnow className="w-6 h-6" style={{color:'#B3E5FC'}} /> },
+  { id: 'sunny', label: '맑음', icon: <Sun className="w-6 h-6" style={{color:'#EB5405'}} /> },
+  { id: 'cloudy', label: '흐림', icon: <Cloud className="w-6 h-6" style={{color:'#A7C7E7'}} /> },
+  { id: 'rainy', label: '비', icon: <CloudRain className="w-6 h-6" style={{color:'#7FC8A9'}} /> },
+  { id: 'stormy', label: '천둥', icon: <CloudLightning className="w-6 h-6" style={{color:'#FFD600'}} /> },
+  { id: 'umbrella', label: '우산', icon: <Umbrella className="w-6 h-6" style={{color:'#7FC8A9'}} /> },
+  { id: 'snowy', label: '눈', icon: <CloudSnow className="w-6 h-6" style={{color:'#B3E5FC'}} /> },
 ];
 
 const DUMMY_IMAGE = "https://placehold.co/400x200?text=AI+Image";
@@ -29,7 +29,7 @@ const DiaryDetail = (props) => {
     date: "2024-06-07",
     title: "오늘의 일기",
     text: "오늘은 날씨가 맑아서 기분이 정말 좋았다. 친구들과 산책도 하고 맛있는 것도 먹었다. 앞으로도 이런 날이 자주 있었으면 좋겠다!",
-    weather: "맑음",
+    weather: "sunny",
     aiImage: DUMMY_IMAGE,
   };
   // 날짜 포맷 (YYYY-MM-DD → YYYY년 MM월 DD일)
@@ -38,15 +38,10 @@ const DiaryDetail = (props) => {
     if (isNaN(d.getTime())) return dateStr;
     return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일`;
   };
-  // 날씨 선택 상태
-  const [weather, setWeather] = useState(diaryData.weather || "맑음");
-  // 날씨 토글 인덱스 상태
-  const weatherIdx = weatherOptions.findIndex(opt => opt.label === weather);
-  const [weatherIndex, setWeatherIndex] = useState(weatherIdx >= 0 ? weatherIdx : 0);
-  const setWeatherByIndex = (idx) => {
-    setWeatherIndex(idx);
-    setWeather(weatherOptions[idx].label);
-  };
+  // DiaryFeedback에서 저장한 날씨 정보 사용
+  const weather = diaryData.weather || 'sunny';
+  const weatherObj = weatherOptions.find(opt => opt.id === weather) || weatherOptions[0];
+
   // 원고지 세팅 (7x7)
   // const gridSize = 7*7;
   // const textArr = (diaryData.text || "").split("").slice(0, gridSize);
@@ -142,11 +137,11 @@ const DiaryDetail = (props) => {
               <span className="inline-flex items-center justify-center w-8 h-8 text-xl bg-[#FFF9F4] border border-[#FFE27A] rounded-full shadow-sm mb-0.5" style={{ lineHeight: 1.1 }} title="감정">{emotionEmoji}</span>
               <span className="text-[11px] text-[#EB5405] mt-[-2px]">{getEmotionLabel(diaryData.emotion)}</span>
             </span>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setWeatherByIndex((weatherIndex - 1 + weatherOptions.length) % weatherOptions.length)} className="rounded-full px-2 py-1 text-xl text-[#EB5405] hover:bg-[#FFE27A] transition" aria-label="이전 날씨">{'<'}</button>
-              <span className="flex items-center gap-1">{weatherOptions[weatherIndex].icon}<span className="text-base ml-1">{weatherOptions[weatherIndex].label}</span></span>
-              <button onClick={() => setWeatherByIndex((weatherIndex + 1) % weatherOptions.length)} className="rounded-full px-2 py-1 text-xl text-[#EB5405] hover:bg-[#FFE27A] transition" aria-label="다음 날씨">{'>'}</button>
-            </div>
+            {/* 날씨 표시 (토글/수정 없이) */}
+            <span className="flex items-center gap-1 ml-4">
+              {weatherObj.icon}
+              <span className="text-base ml-1">{weatherObj.label}</span>
+            </span>
           </div>
         </div>
         {/* 제목 */}
