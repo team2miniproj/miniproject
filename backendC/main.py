@@ -45,40 +45,40 @@ def generate_diary_text(text: str) -> str:
 
 # (get_script, translate_text_to_korean, build_combined_prompt, generate_combined_image, add_text_boxes_to_combined_image 함수는 이전 답변과 동일)
 
-# @app.post("/api/diary-comic")
-# async def diary_comic(req: DiaryComicRequest):
-#     # 더미 일기체 텍스트와 더미 이미지 URL 반환
-#     dummy_diary_text = "😊 오늘은 임시 데이터로 테스트하는 중입니다. OpenAI 없이도 잘 동작해요!"
-#     dummy_image_url = "https://placehold.co/600x600/png?text=Dummy+Comic"
-#     return {
-#         "success": True,
-#         "diary_text": dummy_diary_text,
-#         "comic_image_url": dummy_image_url
-#     }
 @app.post("/api/diary-comic")
 async def diary_comic(req: DiaryComicRequest):
-    try:
-        diary_text = generate_diary_text(req.raw_text)
-        scenes = await comic_generator.get_script(diary_text, req.gender)
-        prompt = await comic_generator.build_combined_prompt(scenes, req.gender)
-        comic_img = await comic_generator.generate_combined_image(prompt)
-        comic_img = await comic_generator.add_text_boxes_to_combined_image(comic_img, scenes, font_path=font_path)
-        # 4. 이미지 저장 및 업로드
-        filename = f"comic_{uuid.uuid4().hex[:8]}.png"
-        output_dir = "outputs"
-        os.makedirs(output_dir, exist_ok=True)
-        output_path = os.path.join(output_dir, filename)
-        comic_img.save(output_path)
-        blob = bucket.blob(f"comics/{filename}")
-        blob.upload_from_filename(output_path)
-        blob.make_public()
-        public_url = blob.public_url
-        return {
-            "success": True,
-            "diary_text": diary_text,
-            "comic_image_url": public_url
-        }
-    except Exception as e:
-        import traceback
-        print(traceback.format_exc())
-        return JSONResponse(status_code=500, content={"success": False, "message": str(e)})
+    # 더미 일기체 텍스트와 더미 이미지 URL 반환
+    dummy_diary_text = "😊 오늘은 임시 데이터로 테스트하는 중입니다. OpenAI 없이도 잘 동작해요!"
+    dummy_image_url = "https://placehold.co/600x600/png?text=Dummy+Comic"
+    return {
+        "success": True,
+        "diary_text": dummy_diary_text,
+        "comic_image_url": dummy_image_url
+    }
+# @app.post("/api/diary-comic")
+# async def diary_comic(req: DiaryComicRequest):
+#     try:
+#         diary_text = generate_diary_text(req.raw_text)
+#         scenes = await comic_generator.get_script(diary_text, req.gender)
+#         prompt = await comic_generator.build_combined_prompt(scenes, req.gender)
+#         comic_img = await comic_generator.generate_combined_image(prompt)
+#         comic_img = await comic_generator.add_text_boxes_to_combined_image(comic_img, scenes, font_path=font_path)
+#         # 4. 이미지 저장 및 업로드
+#         filename = f"comic_{uuid.uuid4().hex[:8]}.png"
+#         output_dir = "outputs"
+#         os.makedirs(output_dir, exist_ok=True)
+#         output_path = os.path.join(output_dir, filename)
+#         comic_img.save(output_path)
+#         blob = bucket.blob(f"comics/{filename}")
+#         blob.upload_from_filename(output_path)
+#         blob.make_public()
+#         public_url = blob.public_url
+#         return {
+#             "success": True,
+#             "diary_text": diary_text,
+#             "comic_image_url": public_url
+#         }
+#     except Exception as e:
+#         import traceback
+#         print(traceback.format_exc())
+#         return JSONResponse(status_code=500, content={"success": False, "message": str(e)})
