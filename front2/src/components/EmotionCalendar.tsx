@@ -1,18 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { DayPicker, DayProps } from 'react-day-picker';
-import { ko } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
+import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
-// 감정-색상 매핑 (디자인 시안 기준)
+// 감정-색상 매핑 (두 번째 사진 기준)
 export const emotionColors = {
-  joy: '#FFE27A',      // 기쁨
-  sadness: '#A7C7E7',  // 슬픔
-  anger: '#F79B8B',    // 분노
-  fear: '#C5A8D2',     // 두려움
-  surprise: '#C4F3E2', // 놀람
-  disgust: '#D3F07D',  // 혐오
-  neutral: '#E2DFD7',  // 중성
+  joy: '#FFE27A',      // 기쁨 - 밝은 노란색
+  sadness: '#A7C7E7',  // 슬픔 - 연한 파란색
+  anger: '#F79B8B',    // 분노 - 연한 산호색
+  fear: '#C5A8D2',     // 두려움 - 연한 라벤더
+  surprise: '#C4F3E2', // 놀람 - 연한 민트색
+  disgust: '#D3F07D',  // 혐오 - 연한 라임색
+  neutral: '#E2DFD7',  // 중성 - 연한 회색
 };
 
 export type EmotionType = keyof typeof emotionColors;
@@ -20,37 +25,32 @@ export type EmotionType = keyof typeof emotionColors;
 interface EmotionData {
   date: Date;
   emotion: EmotionType;
-  intensity?: number; // 0-1 사이의 값
+  intensity?: number;
 }
 
 interface EmotionCalendarProps {
   emotionData?: EmotionData[];
   onDateSelect?: (date: Date, hasEmotion: boolean) => void;
   className?: string;
-  selected?: Date;
-  mode?: 'single' | 'multiple' | 'range';
-  disabled?: { before?: Date; after?: Date };
-  fromDate?: Date;
-  toDate?: Date;
 }
 
-// 감정별 붓터치 SVG (인라인)
+// 감정별 붓터치 SVG (직사각형 붓터치)
 const brushSvgs: Record<EmotionType, string> = {
-  joy: `<svg width='60' height='32' viewBox='0 0 60 32' fill='none' xmlns='http://www.w3.org/2000/svg'><ellipse cx='30' cy='16' rx='28' ry='10' fill='#FFE27A' fill-opacity='0.7'/><ellipse cx='30' cy='16' rx='25' ry='8' fill='#FFE27A' fill-opacity='0.5'/></svg>`,
-  sadness: `<svg width='60' height='32' viewBox='0 0 60 32' fill='none' xmlns='http://www.w3.org/2000/svg'><ellipse cx='30' cy='16' rx='28' ry='10' fill='#A7C7E7' fill-opacity='0.7'/><ellipse cx='30' cy='16' rx='25' ry='8' fill='#A7C7E7' fill-opacity='0.5'/></svg>`,
-  anger: `<svg width='60' height='32' viewBox='0 0 60 32' fill='none' xmlns='http://www.w3.org/2000/svg'><ellipse cx='30' cy='16' rx='28' ry='10' fill='#F79B8B' fill-opacity='0.7'/><ellipse cx='30' cy='16' rx='25' ry='8' fill='#F79B8B' fill-opacity='0.5'/></svg>`,
-  fear: `<svg width='60' height='32' viewBox='0 0 60 32' fill='none' xmlns='http://www.w3.org/2000/svg'><ellipse cx='30' cy='16' rx='28' ry='10' fill='#C5A8D2' fill-opacity='0.7'/><ellipse cx='30' cy='16' rx='25' ry='8' fill='#C5A8D2' fill-opacity='0.5'/></svg>`,
-  surprise: `<svg width='60' height='32' viewBox='0 0 60 32' fill='none' xmlns='http://www.w3.org/2000/svg'><ellipse cx='30' cy='16' rx='28' ry='10' fill='#C4F3E2' fill-opacity='0.7'/><ellipse cx='30' cy='16' rx='25' ry='8' fill='#C4F3E2' fill-opacity='0.5'/></svg>`,
-  disgust: `<svg width='60' height='32' viewBox='0 0 60 32' fill='none' xmlns='http://www.w3.org/2000/svg'><ellipse cx='30' cy='16' rx='28' ry='10' fill='#D3F07D' fill-opacity='0.7'/><ellipse cx='30' cy='16' rx='25' ry='8' fill='#D3F07D' fill-opacity='0.5'/></svg>`,
-  neutral: `<svg width='60' height='32' viewBox='0 0 60 32' fill='none' xmlns='http://www.w3.org/2000/svg'><ellipse cx='30' cy='16' rx='28' ry='10' fill='#E2DFD7' fill-opacity='0.7'/><ellipse cx='30' cy='16' rx='25' ry='8' fill='#E2DFD7' fill-opacity='0.5'/></svg>`,
+  joy: `<svg width='50' height='25' viewBox='0 0 50 25' fill='none' xmlns='http://www.w3.org/2000/svg'><rect x='2' y='2' width='46' height='21' rx='8' fill='#FFE27A' fill-opacity='0.8'/><rect x='4' y='4' width='42' height='17' rx='6' fill='#FFE27A' fill-opacity='0.6'/></svg>`,
+  sadness: `<svg width='50' height='25' viewBox='0 0 50 25' fill='none' xmlns='http://www.w3.org/2000/svg'><rect x='2' y='2' width='46' height='21' rx='8' fill='#A7C7E7' fill-opacity='0.8'/><rect x='4' y='4' width='42' height='17' rx='6' fill='#A7C7E7' fill-opacity='0.6'/></svg>`,
+  anger: `<svg width='50' height='25' viewBox='0 0 50 25' fill='none' xmlns='http://www.w3.org/2000/svg'><rect x='2' y='2' width='46' height='21' rx='8' fill='#F79B8B' fill-opacity='0.8'/><rect x='4' y='4' width='42' height='17' rx='6' fill='#F79B8B' fill-opacity='0.6'/></svg>`,
+  fear: `<svg width='50' height='25' viewBox='0 0 50 25' fill='none' xmlns='http://www.w3.org/2000/svg'><rect x='2' y='2' width='46' height='21' rx='8' fill='#C5A8D2' fill-opacity='0.8'/><rect x='4' y='4' width='42' height='17' rx='6' fill='#C5A8D2' fill-opacity='0.6'/></svg>`,
+  surprise: `<svg width='50' height='25' viewBox='0 0 50 25' fill='none' xmlns='http://www.w3.org/2000/svg'><rect x='2' y='2' width='46' height='21' rx='8' fill='#C4F3E2' fill-opacity='0.8'/><rect x='4' y='4' width='42' height='17' rx='6' fill='#C4F3E2' fill-opacity='0.6'/></svg>`,
+  disgust: `<svg width='50' height='25' viewBox='0 0 50 25' fill='none' xmlns='http://www.w3.org/2000/svg'><rect x='2' y='2' width='46' height='21' rx='8' fill='#D3F07D' fill-opacity='0.8'/><rect x='4' y='4' width='42' height='17' rx='6' fill='#D3F07D' fill-opacity='0.6'/></svg>`,
+  neutral: `<svg width='50' height='25' viewBox='0 0 50 25' fill='none' xmlns='http://www.w3.org/2000/svg'><rect x='2' y='2' width='46' height='21' rx='8' fill='#E2DFD7' fill-opacity='0.8'/><rect x='4' y='4' width='42' height='17' rx='6' fill='#E2DFD7' fill-opacity='0.6'/></svg>`,
 };
 
 export default function EmotionCalendar({
   emotionData = [],
   onDateSelect,
-  className,
-  ...calendarProps
+  className
 }: EmotionCalendarProps) {
+  const [currentDate, setCurrentDate] = useState(new Date());
   
   // 감정 데이터를 날짜별로 매핑
   const emotionMap = new Map<string, EmotionData>();
@@ -59,37 +59,200 @@ export default function EmotionCalendar({
     emotionMap.set(key, data);
   });
 
-  // 붓터치 스타일의 감정 표시 컴포넌트
-  const EmotionIndicator = ({ emotion, intensity = 1 }: { emotion: EmotionType; intensity?: number }) => (
-    <motion.div
-      className="absolute inset-0 rounded-md"
-      style={{
-        backgroundColor: emotionColors[emotion],
-        opacity: 0.7 + (intensity * 0.3),
-        transform: `rotate(${Math.random() * 4 - 2}deg)`,
-      }}
-      initial={{ scale: 0 }}
-      animate={{ scale: 1 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
-    >
-      {/* 붓터치 효과를 위한 추가 레이어 */}
-      <div 
-        className="absolute inset-0 rounded-md"
-        style={{
-          background: `radial-gradient(circle at ${30 + Math.random() * 40}% ${30 + Math.random() * 40}%, rgba(255,255,255,0.2) 0%, transparent 70%)`,
-          transform: `rotate(${Math.random() * 360}deg)`,
-        }}
-      />
-    </motion.div>
-  );
+  // 현재 월의 첫 번째 날과 마지막 날
+  const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+  
+  // 첫 번째 날의 요일 (0: 일요일, 1: 월요일, ...)
+  const firstDayWeekday = firstDayOfMonth.getDay();
+  
+  // 달력에 표시할 모든 날짜 생성 (빈 칸 + 현재 월 + 빈 칸)
+  const daysInMonth = [];
+  
+  // 이전 월의 마지막 날짜들 (빈 칸으로 채우기)
+  for (let i = 0; i < firstDayWeekday; i++) {
+    daysInMonth.push(null);
+  }
+  
+  // 현재 월의 모든 날짜
+  for (let day = 1; day <= lastDayOfMonth.getDate(); day++) {
+    daysInMonth.push(new Date(currentDate.getFullYear(), currentDate.getMonth(), day));
+  }
+  
+  // 다음 월의 날짜들 (6주 표시를 위해)
+  const remainingDays = 42 - daysInMonth.length; // 6주 * 7일 = 42
+  for (let i = 0; i < remainingDays; i++) {
+    daysInMonth.push(null);
+  }
 
-  // 날짜 렌더링 함수 커스텀
-  const renderDay = (day: Date, outside?: boolean) => {
-    // outside day(해당 월이 아닌 날짜)는 렌더하지 않음
-    if (outside) return null;
-    const key = `${day.getFullYear()}-${day.getMonth()}-${day.getDate()}`;
+  // 요일별로 그룹화 (7개씩)
+  const weeks = [];
+  for (let i = 0; i < daysInMonth.length; i += 7) {
+    weeks.push(daysInMonth.slice(i, i + 7));
+  }
+
+  // 이전/다음 월 이동
+  const goToPreviousMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  };
+
+  const goToNextMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  };
+
+  const goToToday = () => {
+    setCurrentDate(new Date());
+  };
+
+  // 날짜 선택 핸들러
+  const handleDateClick = (date: Date) => {
+    const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+    const hasEmotion = emotionMap.has(key);
+    onDateSelect?.(date, hasEmotion);
+  };
+
+  // 오늘 날짜 확인
+  const isToday = (date: Date) => {
+    const today = new Date();
+    return date.getDate() === today.getDate() && 
+           date.getMonth() === today.getMonth() && 
+           date.getFullYear() === today.getFullYear();
+  };
+
+  // 월 이름
+  const monthNames = [
+    '1월', '2월', '3월', '4월', '5월', '6월',
+    '7월', '8월', '9월', '10월', '11월', '12월'
+  ];
+
+  // 요일 이름
+  const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+
+  return (
+    <div className={`w-full ${className}`}>
+      {/* 달력 헤더 */}
+      <div className="flex items-center justify-between mb-6">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={goToPreviousMonth}
+          className="h-8 w-8 rounded-full bg-orange-100/60 hover:bg-orange-200/80 transition-colors"
+        >
+          <ChevronLeft className="h-4 w-4 text-gray-700" />
+        </Button>
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="flex items-center gap-2 text-lg font-semibold text-gray-800 hover:bg-orange-100/60 hover:text-orange-500 rounded-xl px-3 py-2 transition-colors">
+              <span className="font-hakgyoansim">{monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}</span>
+              <ChevronDown className="h-4 w-4 text-gray-500" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56 rounded-2xl shadow-xl border border-orange-100 bg-white p-4 mt-2">
+            {/* 연도 선택 */}
+            <div className="mb-4">
+              <div className="text-sm font-medium text-gray-700 mb-3 font-hakgyoansim">연도</div>
+              <div className="grid grid-cols-3 gap-2">
+                {Array.from({ length: 10 }, (_, i) => {
+                  const year = new Date().getFullYear() - 5 + i;
+                  const isCurrentYear = year === currentDate.getFullYear();
+                  return (
+                    <DropdownMenuItem
+                      key={year}
+                      onClick={() => setCurrentDate(new Date(year, currentDate.getMonth(), 1))}
+                      className={`text-center text-sm py-2 rounded-lg transition-colors font-hakgyoansim ${
+                        isCurrentYear 
+                          ? 'bg-orange-100 text-orange-600 font-semibold' 
+                          : 'hover:bg-orange-50 hover:text-orange-500'
+                      }`}
+                    >
+                      {year}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </div>
+            </div>
+            
+            <div className="border-t border-orange-100 my-3" />
+            
+            {/* 월 선택 */}
+            <div>
+              <div className="text-sm font-medium text-gray-700 mb-3 font-hakgyoansim">월</div>
+              <div className="grid grid-cols-3 gap-2">
+                {monthNames.map((month, index) => {
+                  const isCurrentMonth = index === currentDate.getMonth();
+                  return (
+                    <DropdownMenuItem
+                      key={index}
+                      onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), index, 1))}
+                      className={`text-center text-sm py-2 rounded-lg transition-colors font-hakgyoansim ${
+                        isCurrentMonth 
+                          ? 'bg-orange-100 text-orange-600 font-semibold' 
+                          : 'hover:bg-orange-50 hover:text-orange-500'
+                      }`}
+                    >
+                      {month}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </div>
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            onClick={goToToday}
+            className="text-sm font-medium text-gray-700 hover:bg-orange-100/60 hover:text-orange-500 rounded-xl px-3 py-2 transition-colors font-hakgyoansim"
+          >
+            오늘
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={goToNextMonth}
+            className="h-8 w-8 rounded-full bg-orange-100/60 hover:bg-orange-200/80 transition-colors"
+          >
+            <ChevronRight className="h-4 w-4 text-gray-700" />
+          </Button>
+        </div>
+      </div>
+
+      {/* 요일 헤더 */}
+      <div className="grid grid-cols-7 gap-1 mb-2">
+        {dayNames.map((day, index) => (
+          <div
+            key={day}
+            className={`h-8 flex items-center justify-center text-sm font-medium ${
+              index === 0 || index === 6 
+                ? 'text-orange-500' 
+                : 'text-gray-700'
+            }`}
+          >
+            {day}
+          </div>
+        ))}
+      </div>
+
+      {/* 달력 그리드 */}
+      <div className="grid grid-cols-7 gap-1">
+        {weeks.map((week, weekIndex) => (
+          <React.Fragment key={weekIndex}>
+            {week.map((date, dayIndex) => {
+              // 빈 칸인 경우
+              if (!date) {
+                return (
+                  <div
+                    key={dayIndex}
+                    className="h-12 w-full flex items-center justify-center"
+                  />
+                );
+              }
+
+              const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
     const emotionData = emotionMap.get(key);
-    const isToday = new Date().toDateString() === day.toDateString();
+              const today = isToday(date);
 
     // 감정 붓터치 배경
     const brushBg = emotionData
@@ -97,7 +260,11 @@ export default function EmotionCalendar({
       : undefined;
 
     return (
-      <div className="relative w-full h-full flex items-center justify-center" style={{ minHeight: 36 }}>
+                <button
+                  key={dayIndex}
+                  onClick={() => handleDateClick(date)}
+                  className="relative h-12 w-full flex items-center justify-center rounded-lg hover:bg-gray-50 transition-colors"
+                >
         {/* 감정 붓터치 배경 */}
         {emotionData && (
           <div
@@ -106,113 +273,56 @@ export default function EmotionCalendar({
               backgroundImage: brushBg,
               backgroundRepeat: 'no-repeat',
               backgroundPosition: 'center',
-              backgroundSize: '90% 80%',
+                        backgroundSize: '85% 75%',
               borderRadius: 8,
-              opacity: 0.95,
+                        opacity: 0.9,
+                        transform: `rotate(${Math.random() * 6 - 3}deg)`,
             }}
           />
         )}
-        {/* 오늘 강조 */}
-        {isToday && (
+                  
+                  {/* 오늘 표시 */}
+                  {today && (
           <motion.div
-            className="absolute inset-0 rounded-full border-2 border-orange-500 z-10"
+                      className="absolute inset-0 z-10 rounded-full border-2"
+                      style={{ 
+                        borderColor: '#EB5405',
+                        backgroundColor: '#EB5405'
+                      }}
             initial={{ scale: 0.8 }}
             animate={{ scale: 1 }}
             transition={{ duration: 0.3 }}
           />
         )}
+                  
         {/* 날짜 숫자 */}
-        <span className={cn(
-          "relative z-20 flex items-center justify-center w-full h-full text-base font-hakgyoansim",
-          isToday && "text-orange-500 font-bold"
-        )}>
-          {day.getDate()}
+                  <span className={`relative z-20 text-sm font-medium ${
+                    today ? 'text-white' : 'text-gray-800'
+                  }`}>
+                    {date.getDate()}
         </span>
+                </button>
+              );
+            })}
+          </React.Fragment>
+        ))}
       </div>
-    );
-  };
-
-  // 날짜 선택 핸들러
-  const handleDateSelect = (date: Date | undefined) => {
-    if (!date || !onDateSelect) return;
-    
-    const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-    const hasEmotion = emotionMap.has(key);
-    
-    onDateSelect(date, hasEmotion);
-  };
-
-  return (
-    <div className={cn("w-full", className)}>
-      <DayPicker
-        locale={ko}
-        mode="single"
-        selected={calendarProps.selected}
-        onSelect={handleDateSelect}
-        showOutsideDays={false}
-        disabled={calendarProps.disabled && calendarProps.disabled.before && calendarProps.disabled.after ? { before: calendarProps.disabled.before, after: calendarProps.disabled.after } : undefined}
-        fromDate={calendarProps.fromDate}
-        toDate={calendarProps.toDate}
-        components={{
-          Day: (props: any) => (
-            <button
-              type="button"
-              className="w-full h-full p-0 bg-transparent border-0 focus:outline-none"
-              tabIndex={props.tabIndex}
-              aria-label={props['aria-label']}
-              role={props.role}
-              onClick={props.onClick}
-              onPointerDown={props.onPointerDown}
-              onMouseDown={props.onMouseDown}
-              onKeyDown={props.onKeyDown}
-              disabled={props.disabled}
-              style={{ width: '100%', height: '100%' }}
-            >
-              {renderDay(props.date, props.outside)}
-            </button>
-          ),
-        }}
-        className="w-full p-0"
-        classNames={{
-          months: "block",
-          month: "block",
-          caption: "flex justify-center pt-1 relative items-center",
-          caption_label: "text-sm font-medium font-hakgyoansim",
-          nav: "space-x-1 flex items-center",
-          nav_button: cn(
-            "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100"
-          ),
-          nav_button_previous: "absolute left-1",
-          nav_button_next: "absolute right-1",
-          table: "table w-full border-collapse",
-          head_row: "table-row",
-          head_cell: "table-cell text-gray-500 rounded-md w-10 h-10 font-normal text-[0.8rem] text-center font-hakgyoansim",
-          row: "table-row",
-          cell: "table-cell p-0 text-center align-middle",
-          day: "inline-block w-9 h-9 align-middle",
-          day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-          day_today: "bg-accent text-accent-foreground",
-          day_outside: "text-gray-300 opacity-70",
-          day_disabled: "text-muted-foreground opacity-50",
-          day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
-          day_hidden: "invisible",
-        }}
-      />
       
       {/* 감정 범례 */}
-      <div className="mt-4 p-3 bg-white rounded-lg shadow-sm">
-        <h4 className="text-sm font-medium text-gray-700 mb-2">감정 범례</h4>
-        <div className="grid grid-cols-4 gap-2">
+      <div className="mt-1 p-4 bg-white rounded-lg shadow-sm">
+        <h4 className="text-sm font-medium text-gray-700 mb-3">감정 범례</h4>
+        <div className="grid grid-cols-4 gap-3">
           {Object.entries(emotionColors).map(([emotion, color]) => (
             <div key={emotion} className="flex flex-col items-center gap-1">
               <div
-                className="w-4 h-4 rounded-sm"
+                className="w-6 h-3 rounded-sm"
                 style={{ 
                   backgroundColor: color,
                   transform: `rotate(${Math.random() * 4 - 2}deg)`,
+                  opacity: 0.8,
                 }}
               />
-              <span className="text-xs text-gray-600">
+              <span className="text-xs text-gray-600 font-hakgyoansim">
                 {emotion === 'joy' && '기쁨'}
                 {emotion === 'sadness' && '슬픔'}
                 {emotion === 'anger' && '분노'}

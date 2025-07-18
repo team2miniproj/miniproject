@@ -164,143 +164,117 @@ const Recording = () => {
     }
   };
 
-  // 배경색과 텍스트색 상태에 따라 결정
-  const getBackgroundClasses = () => {
-    switch (recordingPhase) {
-      case "initial":
-        return "bg-orange-100"; // 피치스킨
-      case "recording":
-        return "bg-teal-100"; // 민트 계열
-      case "paused":
-        return "bg-amber-100"; // 일시정지 - 노란 계열
-      case "completed":
-        return "bg-green-100"; // 완료 - 연한 초록
-      case "processing":
-        return "bg-blue-100"; // 처리 중 - 파란 계열
-      default:
-        return "bg-orange-100";
-    }
-  };
 
-  const getTextClasses = () => {
-    switch (recordingPhase) {
-      case "initial":
-        return "text-orange-800";
-      case "recording":
-        return "text-teal-800";
-      case "paused":
-        return "text-amber-800";
-      case "completed":
-        return "text-green-800";
-      case "processing":
-        return "text-blue-800";
-      default:
-        return "text-orange-800";
-    }
-  };
-
-  const getButtonClasses = () => {
-    switch (recordingPhase) {
-      case "initial":
-        return "text-orange-800 hover:bg-orange-200/50";
-      case "recording":
-        return "text-teal-800 hover:bg-teal-200/50";
-      case "paused":
-        return "text-amber-800 hover:bg-amber-200/50";
-      case "completed":
-        return "text-green-800 hover:bg-green-200/50";
-      case "processing":
-        return "text-blue-800 hover:bg-blue-200/50";
-      default:
-        return "text-orange-800 hover:bg-orange-200/50";
-    }
-  };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#FFF9F4] to-[#F9F9FA]">
-      <div className="w-full max-w-md mx-auto rounded-3xl shadow-xl bg-white/80 p-8 mt-10 mb-10 flex flex-col items-center">
-        {/* 상단 뒤로가기 버튼 */}
-        <div className="flex items-center w-full mb-4">
-          <Button
-            onClick={handleBack}
-            variant="ghost"
-            size="icon"
-            className="text-orange-400 hover:bg-orange-100/60 rounded-full shadow font-hakgyoansim"
-            disabled={isProcessing}
-          >
-            <ArrowLeft className="w-6 h-6" />
-          </Button>
-          <div className="flex-1" />
-        </div>
-        {/* 타이머 */}
-        <div className="text-5xl font-hakgyoansim text-orange-500 mb-8 drop-shadow animate-fade-in">
-          {formatTime(recordingTime)}
-        </div>
-        {/* 녹음/정지/일시정지 버튼 등 */}
-        <div className="flex gap-6 mb-8">
-          {(recordingPhase === "initial") && (
-            <Button
-              onClick={startRecording}
-              size="lg"
-              className="w-24 h-24 rounded-full bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 font-hakgyoansim"
-            >
-              <Mic className="w-10 h-10 text-primary-foreground" />
-            </Button>
+    <div className="min-h-screen bg-gradient-to-br from-[#FFF9F4] to-[#F9F9FA] font-hakgyoansim"
+      style={{ 
+        backgroundImage: `
+          linear-gradient(135deg, #F9F9FA 0%, #FFF9F4 100%),
+          radial-gradient(circle at 20% 80%, rgba(235, 84, 5, 0.03) 0%, transparent 50%),
+          radial-gradient(circle at 80% 20%, rgba(255, 226, 122, 0.03) 0%, transparent 50%)
+        `
+      }}
+    >
+      {/* 헤더 영역 */}
+      <div className="px-4 py-8 flex justify-between items-center max-w-2xl mx-auto">
+        <Button
+          onClick={handleBack}
+          variant="ghost"
+          size="icon"
+          className="h-10 w-10 text-orange-400 hover:bg-orange-100/60 rounded-full shadow font-hakgyoansim"
+          disabled={isProcessing}
+        >
+          <ArrowLeft className="h-6 w-6" />
+        </Button>
+        <h1 className="text-2xl font-bold text-orange-500 font-hakgyoansim">음성 일기</h1>
+        <div className="w-10" /> {/* 균형을 위한 빈 공간 */}
+      </div>
+
+      {/* 메인 컨텐츠 영역 */}
+      <div className="container mx-auto px-4 py-4 max-w-lg">
+        <div className="bg-white/90 rounded-3xl shadow-xl p-8 flex flex-col items-center min-h-[420px] justify-center">
+          {/* 타이머 */}
+          <div className="text-7xl font-bold text-orange-500 mb-6 font-hakgyoansim">
+            {formatTime(recordingTime)}
+          </div>
+          {/* 파동 애니메이션 - 녹음 중일 때만 (타이머 바로 아래) */}
+          {recordingPhase === "recording" && (
+            <div className="relative w-40 h-40 flex items-center justify-center mb-8">
+              <div className="absolute w-32 h-32 border-2 border-orange-300 rounded-full animate-pulse opacity-30"></div>
+              <div className="absolute w-40 h-40 border-2 border-orange-400 rounded-full animate-pulse opacity-20" style={{ animationDelay: '0.3s' }}></div>
+              <div className="absolute w-48 h-48 border-2 border-orange-500 rounded-full animate-pulse opacity-10" style={{ animationDelay: '0.6s' }}></div>
+            </div>
           )}
-          {(recordingPhase === "recording" || recordingPhase === "paused") && (
-            <>
+
+          {/* 녹음 버튼 영역 */}
+          <div className="flex gap-8 mb-12">
+            {(recordingPhase === "initial") && (
               <Button
-                onClick={recordingPhase === "recording" ? pauseRecording : resumeRecording}
+                onClick={startRecording}
                 size="lg"
-                className="w-16 h-16 rounded-full bg-amber-500 hover:bg-amber-600 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 font-hakgyoansim"
+                className="w-28 h-28 rounded-full bg-orange-500 hover:bg-orange-600 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 font-hakgyoansim"
               >
-                {recordingPhase === "recording" ? (
-                  <Pause className="w-6 h-6 text-white" />
-                ) : (
-                  <Play className="w-6 h-6 text-white ml-1" />
-                )}
+                <Mic className="w-12 h-12 text-white" />
               </Button>
-              <Button
-                onClick={stopRecording}
-                size="lg"
-                className="w-20 h-20 rounded-full bg-red-500 hover:bg-red-600 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 font-hakgyoansim"
-              >
-                <Square className="w-8 h-8 text-white" />
-              </Button>
-            </>
-          )}
-        </div>
-        {/* 안내문구 */}
-        <div className="text-base text-gray-700 font-hakgyoansim text-center mb-4 animate-fade-in">
-          {recordingPhase === "initial" && "마이크 버튼을 터치하여 음성 일기를 시작하세요"}
-          {recordingPhase === "recording" && "자유롭게 이야기해보세요."}
-          {recordingPhase === "paused" && "일시정지됨. 재개하거나 녹음을 완료하세요."}
-          {recordingPhase === "processing" && "음성을 텍스트로 변환 중... 잠시만 기다려주세요"}
-        </div>
-        {/* 녹음 상태 표시 */}
-        {(recordingPhase === "recording" || recordingPhase === "paused") && (
-          <div className="flex items-center gap-2 mb-4">
-            {recordingPhase === "recording" ? (
+            )}
+            {(recordingPhase === "recording" || recordingPhase === "paused") && (
               <>
-                <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                <span className="text-red-600 font-medium font-hakgyoansim">녹음 중</span>
-              </>
-            ) : (
-              <>
-                <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
-                <span className="text-amber-600 font-medium font-hakgyoansim">일시정지됨</span>
+                <Button
+                  onClick={recordingPhase === "recording" ? pauseRecording : resumeRecording}
+                  size="lg"
+                  className="w-20 h-20 rounded-full bg-orange-400 hover:bg-orange-500 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 font-hakgyoansim"
+                >
+                  {recordingPhase === "recording" ? (
+                    <Pause className="w-8 h-8 text-white" />
+                  ) : (
+                    <Play className="w-8 h-8 text-white ml-1" />
+                  )}
+                </Button>
+                <Button
+                  onClick={stopRecording}
+                  size="lg"
+                  className="w-24 h-24 rounded-full bg-red-500 hover:bg-red-600 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 font-hakgyoansim"
+                >
+                  <Square className="w-10 h-10 text-white" />
+                </Button>
               </>
             )}
           </div>
-        )}
-        {/* 파동 애니메이션 - 녹음 중일 때만 */}
-        {recordingPhase === "recording" && (
-          <div className="relative w-40 h-40 flex items-center justify-center mt-6">
-            <div className="absolute w-32 h-32 border-2 border-teal-300 rounded-full animate-pulse-wave opacity-20"></div>
-            <div className="absolute w-40 h-40 border-2 border-teal-400 rounded-full animate-pulse-wave opacity-15 animation-delay-300"></div>
-            <div className="absolute w-48 h-48 border-2 border-teal-500 rounded-full animate-pulse-wave opacity-10 animation-delay-600"></div>
+
+          {/* 안내문구 */}
+          <div className="text-xl text-gray-700 font-hakgyoansim text-center mb-8">
+            {recordingPhase === "initial" && "마이크 버튼을 터치하여 음성 일기를 시작하세요"}
+            {recordingPhase === "recording" && "자유롭게 이야기해보세요"}
+            {recordingPhase === "paused" && "일시정지됨. 재개하거나 녹음을 완료하세요"}
+            {recordingPhase === "processing" && "음성을 텍스트로 변환 중... 잠시만 기다려주세요"}
           </div>
-        )}
+
+          {/* 녹음 상태 표시 */}
+          {(recordingPhase === "recording" || recordingPhase === "paused") && (
+            <div className="flex items-center gap-3 mb-8">
+              {recordingPhase === "recording" ? (
+                <>
+                  <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
+                  <span className="text-red-600 font-semibold font-hakgyoansim">녹음 중</span>
+                </>
+              ) : (
+                <>
+                  <div className="w-4 h-4 bg-orange-500 rounded-full"></div>
+                  <span className="text-orange-600 font-semibold font-hakgyoansim">일시정지됨</span>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* 처리 중 로딩 */}
+          {recordingPhase === "processing" && (
+            <div className="flex items-center gap-3 mb-8">
+              <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+              <span className="text-orange-600 font-semibold font-hakgyoansim text-lg">처리 중...</span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

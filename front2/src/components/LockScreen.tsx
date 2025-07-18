@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Lock, Delete } from "lucide-react";
+import { Lock, Delete, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -31,7 +31,6 @@ const LockScreen = () => {
       const newPin = pin + num;
       setPin(newPin);
       setError("");
-      
       if (newPin.length === 4) {
         setTimeout(() => handleSubmit(newPin), 100);
       }
@@ -53,15 +52,12 @@ const LockScreen = () => {
       setError("4자리 비밀번호를 입력해주세요");
       return;
     }
-
     try {
       const lockRef = doc(db, "users", currentUser.uid, "security", "lock");
       const lockSnap = await getDoc(lockRef);
-      
       if (lockSnap.exists()) {
         const lockData = lockSnap.data();
         const savedPin = lockData?.pin;
-        
         if (savedPin === simpleHash(pinToCheck)) {
           unlockApp();
         } else {
@@ -95,21 +91,37 @@ const LockScreen = () => {
   ];
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-orange-50 to-orange-100 flex flex-col z-50">
-      {/* 헤더 */}
-      <div className="flex items-center justify-between p-4 pt-12">
+    <div
+      className="fixed inset-0 flex flex-col font-hakgyoansim bg-[#F9F9FA]"
+      style={{
+        backgroundImage: `
+          linear-gradient(135deg, #F9F9FA 0%, #FFF9F4 100%),
+          radial-gradient(circle at 20% 80%, rgba(235, 84, 5, 0.03) 0%, transparent 50%),
+          radial-gradient(circle at 80% 20%, rgba(255, 226, 122, 0.03) 0%, transparent 50%)
+        `
+      }}
+    >
+      {/* 상단 뒤로가기(필요시) */}
+      <div className="flex items-center justify-between p-4 pt-8">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-10 w-10 text-orange-400 hover:bg-orange-100/60 rounded-full font-hakgyoansim"
+          style={{ visibility: 'hidden' }} // 필요시 visible로 변경
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
         <div className="flex-1" />
         {pin.length > 0 && (
           <Button
             variant="ghost"
             onClick={handleClear}
-            className="text-orange-600 hover:text-orange-700"
+            className="text-orange-600 hover:text-orange-700 font-hakgyoansim"
           >
             전체 삭제
           </Button>
         )}
       </div>
-
       {/* 메인 컨텐츠 */}
       <div className="flex-1 flex flex-col items-center justify-center px-8">
         <motion.div
@@ -122,83 +134,68 @@ const LockScreen = () => {
           transition={{ duration: 0.3 }}
           className="text-center mb-12"
         >
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-orange-100 rounded-full mb-6">
-            <Lock className="w-10 h-10 text-orange-600" />
+          <div className="flex flex-col items-center mb-4">
+            <div className="w-14 h-14 bg-orange-100 rounded-full flex items-center justify-center mb-2 border-2 border-orange-300">
+              <Lock className="w-8 h-8 text-orange-400" />
+            </div>
           </div>
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">잠금 해제</h1>
-          <p className="text-gray-600 text-lg">4자리 비밀번호를 입력해주세요</p>
+          <h1 className="text-2xl font-bold text-gray-800 mb-2 font-hakgyoansim">잠금 해제</h1>
+          <p className="text-gray-600 text-lg font-hakgyoansim">4자리 비밀번호를 입력해주세요</p>
         </motion.div>
-
         {/* PIN 입력 표시 */}
         <div className="flex justify-center mb-12">
-          <div className="flex gap-6">
+          <div className="flex gap-8">
             {[...Array(4)].map((_, i) => (
               <motion.div
                 key={i}
                 initial={{ scale: 0.8 }}
                 animate={{ 
-                  scale: i < pin.length ? 1.1 : 1,
-                  backgroundColor: i < pin.length ? "#f97316" : "#e5e7eb"
+                  scale: i < pin.length ? 1.15 : 1,
+                  backgroundColor: i < pin.length ? '#ea580c22' : "#fff0"
                 }}
                 transition={{ duration: 0.2 }}
-                className="w-6 h-6 rounded-full border-2 border-orange-300"
+                className={`w-8 h-8 rounded-full border-2 ${i < pin.length ? 'border-orange-400' : 'border-orange-200'} shadow font-hakgyoansim`}
               />
             ))}
           </div>
         </div>
-
+        {/* 숫자패드 */}
+        <div className="flex flex-col items-center gap-4">
+          {numbers.map((row, rowIdx) => (
+            <div key={rowIdx} className="flex gap-8">
+              {row.map((num, colIdx) => (
+                <button
+                  key={colIdx}
+                  onClick={() => num && num !== "⌫" && handleNumberClick(num)}
+                  className={`w-16 h-16 flex items-center justify-center rounded-full text-2xl font-bold font-hakgyoansim bg-white/80 shadow transition-all duration-200
+                    ${num && num !== "⌫" ? "hover:bg-orange-50 hover:text-orange-600 active:bg-orange-100" : ""}
+                    ${num === "⌫" ? "hover:bg-red-50 hover:text-red-600" : ""}
+                    ${num === "" ? "opacity-0 pointer-events-none" : ""}
+                  `}
+                  style={{
+                    border: num && num !== "" ? '2px solid #f3f4f6' : 'none',
+                  }}
+                  tabIndex={num === "" ? -1 : 0}
+                  aria-label={num === "⌫" ? "지우기" : num}
+                  onMouseDown={num === "⌫" ? handleDelete : undefined}
+                >
+                  {num === "⌫" ? (
+                    <Delete className="w-6 h-6" />
+                  ) : (
+                    num
+                  )}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
         {/* 에러 메시지 */}
         {error && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-red-500 text-center mb-8 px-4"
-          >
-            {error}
-          </motion.div>
+          <div className="mt-8 text-red-500 text-base font-hakgyoansim animate-shake">{error}</div>
         )}
       </div>
-
-      {/* 숫자 패드 */}
-      <div className="px-8 pb-8">
-        <div className="grid grid-cols-3 gap-4 max-w-sm mx-auto">
-          {numbers.map((row, rowIndex) =>
-            row.map((num, colIndex) => (
-              <motion.div
-                key={`${rowIndex}-${colIndex}`}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Button
-                  variant="ghost"
-                  size="lg"
-                  className={`h-16 w-16 text-2xl font-semibold rounded-full transition-all duration-200 ${
-                    num === ""
-                      ? "invisible"
-                      : num === "⌫"
-                      ? "hover:bg-red-50 hover:text-red-600"
-                      : "hover:bg-orange-50 hover:text-orange-600 active:bg-orange-100"
-                  }`}
-                  onClick={() => {
-                    if (num === "⌫") {
-                      handleDelete();
-                    } else if (num !== "") {
-                      handleNumberClick(num);
-                    }
-                  }}
-                  disabled={num === ""}
-                >
-                  {num === "⌫" ? <Delete className="w-6 h-6" /> : num}
-                </Button>
-              </motion.div>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* 하단 정보 */}
-      <div className="text-center text-xs text-gray-500 pb-6">
-        <p>앱 보안을 위해 비밀번호를 입력해주세요</p>
-      </div>
+      {/* 안내문구 */}
+      <div className="mb-8 text-xs text-[#AAA] font-hakgyoansim text-center">앱 보안을 위해 비밀번호를 입력해주세요</div>
     </div>
   );
 };

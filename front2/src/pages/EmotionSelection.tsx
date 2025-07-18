@@ -81,14 +81,27 @@ const EmotionSelection = () => {
   const handleNext = () => {
     if (!selectedEmotion) return;
     
-    // TODO: 실제로는 선택된 감정과 함께 일기 편집 페이지로 이동
-    // 현재는 홈페이지로 이동 (임시)
+    // 선택된 감정 정보 저장
     const selectedEmotionData = emotions.find(e => e.id === selectedEmotion);
     console.log('선택된 감정:', selectedEmotionData);
     
-    // 감정 선택 완료 후 다음 페이지로 이동
-    // TODO: 실제 구현에서는 일기 편집 페이지로 이동
-    navigate('/');
+    if (selectedEmotionData) {
+      // 선택된 감정을 localStorage에 저장
+      localStorage.setItem('selectedEmotion', JSON.stringify({
+        id: selectedEmotionData.id,
+        name: selectedEmotionData.name,
+        emoji: selectedEmotionData.emoji,
+        color: selectedEmotionData.color
+      }));
+    }
+    
+    // 기존 텍스트가 없으면 빈 텍스트로 저장 (STT 실패 등)
+    if (!text) {
+      localStorage.setItem("transcribedText", "");
+    }
+    
+    // 감정 선택 완료 후 일기 편집 페이지로 이동
+    navigate('/diary-edit');
   };
 
   return (

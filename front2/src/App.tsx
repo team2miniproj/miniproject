@@ -13,10 +13,11 @@ import NotFound from "@/pages/NotFound";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LockProvider } from "@/contexts/LockContext";
-import Bookmarks from "@/pages/Bookmarks";
+import Diaries from "@/pages/Bookmarks";
 import DiaryGeneration from "@/pages/DiaryGeneration";
 import DiaryFeedback from "@/pages/DiaryFeedback";
 import TextEdit from "@/pages/TextEdit";
+import DiaryBookDetail from "@/pages/DiaryBookDetail";
 
 function App() {
   return (
@@ -100,7 +101,23 @@ function App() {
               path="/bookmarks"
               element={
                 <ProtectedRoute>
-                  <Bookmarks />
+                  <Diaries />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/diaries"
+              element={
+                <ProtectedRoute>
+                  <Diaries />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/diarybook/:id"
+              element={
+                <ProtectedRoute>
+                  <DiaryBookDetail />
                 </ProtectedRoute>
               }
             />
