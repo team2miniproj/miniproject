@@ -145,19 +145,18 @@ export default function DiaryFeedback() {
 
     try {
       // 선택된 날짜가 있으면 사용, 없으면 현재 날짜 사용
-      let dateToSave: Date;
+      let dateToSave: string;
       if (feedbackData.selected_date) {
-        // YYYY-MM-DD 문자열을 Date 객체로 변환
-        const [year, month, day] = feedbackData.selected_date.split('-').map(Number);
-        dateToSave = new Date(year, month - 1, day); // month는 0-based
+        dateToSave = feedbackData.selected_date; // YYYY-MM-DD 문자열 그대로 저장
       } else {
-        dateToSave = new Date();
+        // 오늘 날짜를 YYYY-MM-DD로
+        dateToSave = new Date().toISOString().slice(0, 10);
       }
 
       // Firebase Firestore에 일기 데이터 저장
       const diaryData = {
         uid: currentUser.uid,
-        date: dateToSave, // Date 객체로 저장
+        date: dateToSave, // 문자열로 저장
         text: editedText,
         weather: selectedWeather, // 날씨 정보 추가
         emotion_analysis: {

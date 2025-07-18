@@ -35,7 +35,9 @@ import { Navigation, Pagination } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
-import EmotionCalendar from '@/components/EmotionCalendar';
+import EmotionCalendar, { EmotionData } from '@/components/EmotionCalendar';
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 // 예시 감정 데이터
 const sampleEmotionData = [
@@ -161,6 +163,7 @@ export default function Home() {
   };
 
   const [diaries, setDiaries] = useState([]);
+  const [emotionData, setEmotionData] = useState<EmotionData[]>([]);
 
   // localStorage에서 불러오기
   useEffect(() => {
@@ -175,6 +178,43 @@ export default function Home() {
   useEffect(() => {
     localStorage.setItem(LOCAL_KEY, JSON.stringify(diaries));
   }, [diaries]);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchDiaries = async () => {
+      const q = query(
+        collection(db, "diaries"),
+        where("uid", "==", user.uid)
+      );
+      const querySnapshot = await getDocs(q);
+      const data: EmotionData[] = [];
+      querySnapshot.forEach((doc) => {
+        const d = doc.data();
+        console.log('Firestore diary doc:', d);
+        let dateObj: Date | null = null;
+        if (typeof d.date === "string") {
+          // "YYYY-MM-DD" 문자열
+          const [year, month, day] = d.date.split('-').map(Number);
+          dateObj = new Date(year, month - 1, day);
+        } else if (d.date && typeof d.date.toDate === "function") {
+          // Firestore Timestamp 객체
+          dateObj = d.date.toDate();
+        }
+        if (dateObj && d.emotion_analysis?.primary_emotion) {
+          const emotionDatum = {
+            date: dateObj,
+            emotion: d.emotion_analysis.primary_emotion,
+            intensity: d.emotion_analysis.primary_emotion_score
+          };
+          console.log('Converted emotionData:', emotionDatum);
+          data.push(emotionDatum);
+        }
+      });
+      setEmotionData(data);
+      console.log('최종 emotionData 배열:', data);
+    };
+    fetchDiaries();
+  }, [user]);
 
   return (
     <motion.div
@@ -248,7 +288,7 @@ export default function Home() {
           transition={{ delay: 0.1 }}
         >
             <EmotionCalendar
-              emotionData={sampleEmotionData}
+              emotionData={emotionData}
               onDateSelect={handleDateSelect}
             />
         </motion.div>

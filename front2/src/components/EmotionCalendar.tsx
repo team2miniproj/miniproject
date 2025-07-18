@@ -22,7 +22,7 @@ export const emotionColors = {
 
 export type EmotionType = keyof typeof emotionColors;
 
-interface EmotionData {
+export interface EmotionData {
   date: Date;
   emotion: EmotionType;
   intensity?: number;
@@ -55,7 +55,7 @@ export default function EmotionCalendar({
   // 감정 데이터를 날짜별로 매핑
   const emotionMap = new Map<string, EmotionData>();
   emotionData.forEach(data => {
-    const key = `${data.date.getFullYear()}-${data.date.getMonth()}-${data.date.getDate()}`;
+    const key = `${data.date.getFullYear()}-${String(data.date.getMonth() + 1).padStart(2, '0')}-${String(data.date.getDate()).padStart(2, '0')}`;
     emotionMap.set(key, data);
   });
 
@@ -106,7 +106,7 @@ export default function EmotionCalendar({
 
   // 날짜 선택 핸들러
   const handleDateClick = (date: Date) => {
-    const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     const hasEmotion = emotionMap.has(key);
     onDateSelect?.(date, hasEmotion);
   };
@@ -237,75 +237,51 @@ export default function EmotionCalendar({
 
       {/* 달력 그리드 */}
       <div className="grid grid-cols-7 gap-1">
-        {weeks.map((week, weekIndex) => (
-          <React.Fragment key={weekIndex}>
-            {week.map((date, dayIndex) => {
-              // 빈 칸인 경우
-              if (!date) {
-                return (
-                  <div
-                    key={dayIndex}
-                    className="h-12 w-full flex items-center justify-center"
-                  />
-                );
-              }
+        {daysInMonth.map((date, idx) => {
+          if (!date) {
+            return <div key={idx} className="h-12" />;
+          }
+          const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+          const emotionDatum = emotionMap.get(key);
+          const isTodayDate = isToday(date);
 
-              const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-    const emotionData = emotionMap.get(key);
-              const today = isToday(date);
+          // 감정별 배경색
+          const bgColor = emotionDatum ? emotionColors[emotionDatum.emotion] : undefined;
 
-    // 감정 붓터치 배경
-    const brushBg = emotionData
-      ? `url('data:image/svg+xml;utf8,${encodeURIComponent(brushSvgs[emotionData.emotion])}')`
-      : undefined;
+          // 감정별 이모지
+          const emotionEmoji = emotionDatum ? (
+            emotionDatum.emotion === "joy" ? "😊" :
+            emotionDatum.emotion === "sadness" ? "😢" :
+            emotionDatum.emotion === "anger" ? "😡" :
+            emotionDatum.emotion === "fear" ? "😨" :
+            emotionDatum.emotion === "surprise" ? "😮" :
+            emotionDatum.emotion === "disgust" ? "🤢" :
+            emotionDatum.emotion === "neutral" ? "😐" : ""
+          ) : null;
 
-    return (
-                <button
-                  key={dayIndex}
-                  onClick={() => handleDateClick(date)}
-                  className="relative h-12 w-full flex items-center justify-center rounded-lg hover:bg-gray-50 transition-colors"
-                >
-        {/* 감정 붓터치 배경 */}
-        {emotionData && (
-          <div
-            className="absolute inset-0 z-0"
-            style={{
-              backgroundImage: brushBg,
-              backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'center',
-                        backgroundSize: '85% 75%',
-              borderRadius: 8,
-                        opacity: 0.9,
-                        transform: `rotate(${Math.random() * 6 - 3}deg)`,
-            }}
-          />
-        )}
-                  
-                  {/* 오늘 표시 */}
-                  {today && (
-          <motion.div
-                      className="absolute inset-0 z-10 rounded-full border-2"
-                      style={{ 
-                        borderColor: '#EB5405',
-                        backgroundColor: '#EB5405'
-                      }}
-            initial={{ scale: 0.8 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 0.3 }}
-          />
-        )}
-                  
-        {/* 날짜 숫자 */}
-                  <span className={`relative z-20 text-sm font-medium ${
-                    today ? 'text-white' : 'text-gray-800'
-                  }`}>
-                    {date.getDate()}
-        </span>
-                </button>
-              );
-            })}
-          </React.Fragment>
-        ))}
+          return (
+            <button
+              key={idx}
+              onClick={() => handleDateClick(date)}
+              className={`
+                w-full h-12 flex flex-col items-center justify-center rounded-xl transition-colors
+                font-hakgyoansim text-base font-semibold
+                ${isTodayDate ? "border-2 border-orange-400" : ""}
+              `}
+              style={{
+                background: bgColor ? bgColor : undefined,
+                color: emotionDatum ? "#222" : "#bbb",
+                border: isTodayDate ? "2px solid #EB5405" : undefined,
+                boxShadow: emotionDatum ? "0 2px 8px 0 rgba(0,0,0,0.04)" : undefined,
+              }}
+            >
+              <span>{date.getDate()}</span>
+              {emotionDatum && (
+                <span className="text-lg mt-1">{emotionEmoji}</span>
+              )}
+            </button>
+          );
+        })}
       </div>
       
       {/* 감정 범례 */}

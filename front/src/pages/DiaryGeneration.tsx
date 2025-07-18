@@ -120,8 +120,6 @@ export default function DiaryGeneration() {
         images: [comicResult.comic_image_url],
         generated_text: comicResult.diary_text // 필요에 따라
       };
-      console.log("processedComicResult", processedComicResult);
-      console.log("comicResult :::::::::::::: ", comicResult);
       
       
       updateStepStatus(1, 'completed');
