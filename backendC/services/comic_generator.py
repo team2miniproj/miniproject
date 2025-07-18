@@ -50,7 +50,7 @@ Diary: {text}
 """
 
         res = await client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
         )
@@ -81,7 +81,7 @@ Diary: {text}
 
     async def translate_text_to_korean(self, text: str) -> str:
         res = await client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-3.5-turbo",
             messages=[
                 {"role": "user", "content": f"Translate this into comics style natural Korean:\n{text}"}
             ],
@@ -185,6 +185,7 @@ Diary: {text}
         self,
         img: Image.Image,
         scenes: list,
+        font_path: str = None,
         *,
         base_font_size: int = 40,  # 폰트 크기 상향
         min_font_size: int = 24,
@@ -202,6 +203,7 @@ Diary: {text}
         box_height = int(panel_height * box_height_ratio)
 
         # Danjo-bold-Regular.otf 폰트 경로 (backendC 폴더 기준)
+       
         font_path = os.path.join(os.path.dirname(__file__), '../Danjo-bold-Regular.otf')
 
         positions = [
