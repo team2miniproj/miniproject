@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { TrendingUp, Calendar, Heart, BarChart3, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
 
@@ -20,7 +19,6 @@ interface MoodTrend {
 }
 
 const Statistics = () => {
-  const [selectedPeriod, setSelectedPeriod] = useState<"week" | "month" | "year">("month");
   const navigate = useNavigate();
 
   // 샘플 데이터
@@ -62,170 +60,88 @@ const Statistics = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div
+      className="min-h-screen font-hakgyoansim"
+      style={{
+        backgroundImage: `
+          linear-gradient(135deg, #F9F9FA 0%, #FFF9F4 100%),
+          radial-gradient(circle at 20% 80%, rgba(235, 84, 5, 0.03) 0%, transparent 50%),
+          radial-gradient(circle at 80% 20%, rgba(255, 226, 122, 0.03) 0%, transparent 50%)
+        `
+      }}
+    >
       {/* 헤더 */}
-      <div className="bg-gradient-header p-6 pt-12">
-        <div className="flex items-center justify-between">
+      <div className="w-full max-w-2xl mx-auto pt-12 px-6">
+        <div className="flex items-center mb-6">
           <Button
-            onClick={() => navigate(-1)}
             variant="ghost"
-            size="icon"
-            className="text-white hover:bg-white/20"
+            onClick={() => navigate(-1)}
+            className="text-orange-500 hover:bg-orange-100/60 rounded-full font-hakgyoansim px-4 py-2"
           >
-            <ArrowLeft className="w-6 h-6" />
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            뒤로 가기
           </Button>
-          <div className="text-center flex-1">
-          <h1 className="text-2xl font-bold text-white mb-2">감정 통계</h1>
-          <p className="text-white/80">나의 감정 패턴을 확인해보세요</p>
-          </div>
-          <div className="w-10" />
+          <div className="flex-1" />
+        </div>
+        <div className="text-center mb-6">
+          <h1 className="text-3xl font-bold text-orange-500 font-hakgyoansim mb-2">감정 통계</h1>
+          <p className="text-lg text-gray-500 font-hakgyoansim">나의 감정 패턴을 확인해보세요</p>
         </div>
       </div>
 
-      {/* 기간 선택 */}
-      <div className="p-6 pb-4">
-        <div className="flex gap-2 bg-muted rounded-lg p-1">
-          {[
-            { key: "week", label: "최근 1주" },
-            { key: "month", label: "최근 1달" },
-            { key: "year", label: "최근 1년" }
-          ].map(({ key, label }) => (
-            <Button
-              key={key}
-              variant={selectedPeriod === key ? "default" : "ghost"}
-              size="sm"
-              className="flex-1"
-              onClick={() => setSelectedPeriod(key as any)}
-            >
-              {label}
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      <div className="px-6">
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="overview">개요</TabsTrigger>
-            <TabsTrigger value="emotions">감정 분석</TabsTrigger>
-            <TabsTrigger value="trends">기분 변화</TabsTrigger>
-          </TabsList>
-
-          {/* 개요 탭 */}
-          <TabsContent value="overview" className="space-y-6 mt-6">
+      <div className="px-6 max-w-2xl mx-auto space-y-8 pb-16">
             {/* 주요 지표 */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-card rounded-lg p-4 shadow-card">
-                <div className="flex items-center gap-3 mb-2">
-                  <Calendar className="w-5 h-5 text-primary" />
-                  <span className="text-sm text-muted-foreground">총 일기 수</span>
-                </div>
-                <div className="text-2xl font-bold">{totalEntries}</div>
-                <div className="text-xs text-muted-foreground">이번 달</div>
-              </div>
-
-              <div className="bg-card rounded-lg p-4 shadow-card">
-                <div className="flex items-center gap-3 mb-2">
-                  <Heart className="w-5 h-5 text-primary" />
-                  <span className="text-sm text-muted-foreground">평균 기분</span>
-                </div>
-                <div className={`text-2xl font-bold ${getMoodColor(averageMood)}`}>
-                  {averageMood.toFixed(1)} {getMoodEmoji(averageMood)}
-                </div>
-                <div className="text-xs text-muted-foreground">5점 만점</div>
+          <div className="bg-white/80 rounded-xl p-6 shadow text-center">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Calendar className="w-5 h-5 text-orange-400" />
+              <span className="text-base text-orange-500 font-bold">총 일기 수</span>
+            </div>
+            <div className="text-2xl font-bold text-gray-800">{totalEntries}</div>
+            <div className="text-xs text-gray-400">이번 달</div>
+                    </div>
+          <div className="bg-white/80 rounded-xl p-6 shadow text-center">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Heart className="w-5 h-5 text-orange-400" />
+              <span className="text-base text-orange-500 font-bold">평균 기분</span>
+            </div>
+            <div className={`text-2xl font-bold ${getMoodColor(averageMood)}`}>{averageMood.toFixed(1)} {getMoodEmoji(averageMood)}</div>
+            <div className="text-xs text-gray-400">5점 만점</div>
               </div>
             </div>
 
-            {/* 가장 많은 감정 */}
-            <div className="bg-card rounded-lg p-4 shadow-card">
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-primary" />
-                가장 많이 느낀 감정
-              </h3>
-              {emotionStats.slice(0, 3).map((stat, index) => (
-                <div key={stat.emotion} className="flex items-center justify-between mb-3 last:mb-0">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full ${stat.color} flex items-center justify-center`}>
-                      {stat.emoji}
-                    </div>
-                    <div>
-                      <div className="font-medium">{stat.name}</div>
-                      <div className="text-sm text-muted-foreground">{stat.count}회</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-semibold">{stat.percentage}%</div>
-                    {index === 0 && <div className="text-xs text-primary">최다</div>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </TabsContent>
-
-          {/* 감정 분석 탭 */}
-          <TabsContent value="emotions" className="space-y-6 mt-6">
-            <div className="bg-card rounded-lg p-4 shadow-card">
-              <h3 className="font-semibold mb-4 flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-primary" />
-                감정별 통계
-              </h3>
-              
-              <div className="space-y-4">
-                {emotionStats.map((stat) => (
-                  <div key={stat.emotion}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <span className="text-lg">{stat.emoji}</span>
-                        <span className="font-medium">{stat.name}</span>
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {stat.count}회 ({stat.percentage}%)
-                      </div>
-                    </div>
-                    <Progress value={stat.percentage} className="h-2" />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* 감정 분포 원형 차트 (간단한 시각화) */}
-            <div className="bg-card rounded-lg p-4 shadow-card">
-              <h3 className="font-semibold mb-4">감정 분포</h3>
-              <div className="grid grid-cols-2 gap-4">
+        {/* 감정 분포 */}
+        <div className="bg-white/80 rounded-xl p-6 shadow">
+          <h3 className="font-bold text-orange-500 mb-4 flex items-center gap-2"><BarChart3 className="w-5 h-5 text-orange-400" />감정 분포</h3>
+          <div className="grid grid-cols-3 gap-4">
                 {emotionStats.map((stat) => (
                   <div key={stat.emotion} className="text-center">
                     <div className={`w-16 h-16 rounded-full ${stat.color} flex items-center justify-center text-2xl mx-auto mb-2`}>
                       {stat.emoji}
                     </div>
                     <div className="text-sm font-medium">{stat.name}</div>
-                    <div className="text-xs text-muted-foreground">{stat.percentage}%</div>
+                <div className="text-xs text-gray-400">{stat.percentage}%</div>
                   </div>
                 ))}
               </div>
             </div>
-          </TabsContent>
 
-          {/* 기분 변화 탭 */}
-          <TabsContent value="trends" className="space-y-6 mt-6">
-            <div className="bg-card rounded-lg p-4 shadow-card">
-              <h3 className="font-semibold mb-4">최근 기분 변화</h3>
-              
-              {/* 간단한 기분 차트 */}
+        {/* 최근 기분 변화 */}
+        <div className="bg-white/80 rounded-xl p-6 shadow">
+          <h3 className="font-bold text-orange-500 mb-4">최근 기분 변화</h3>
               <div className="space-y-3">
                 {moodTrends.map((trend, index) => (
                   <div key={index} className="flex items-center gap-4">
-                    <div className="w-12 text-sm text-muted-foreground">{trend.date}</div>
+                <div className="w-12 text-sm text-gray-400">{trend.date}</div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <div className="w-full bg-muted rounded-full h-2">
+                    <div className="w-full bg-gray-100 rounded-full h-2">
                           <div 
-                            className="bg-gradient-primary h-2 rounded-full" 
+                        className="bg-orange-200 h-2 rounded-full" 
                             style={{ width: `${(trend.mood / 5) * 100}%` }}
                           ></div>
                         </div>
-                        <span className={`text-sm font-medium ${getMoodColor(trend.mood)}`}>
-                          {trend.mood}.0
-                        </span>
+                    <span className={`text-sm font-medium ${getMoodColor(trend.mood)}`}>{trend.mood}.0</span>
                       </div>
                     </div>
                     <span className="text-lg">{getMoodEmoji(trend.mood)}</span>
@@ -233,37 +149,6 @@ const Statistics = () => {
                 ))}
               </div>
             </div>
-
-            <div className="bg-card rounded-lg p-4 shadow-card">
-              <h3 className="font-semibold mb-3">기분 개선 팁</h3>
-              <div className="space-y-3 text-sm">
-                {averageMood < 3 ? (
-                  <>
-                    <div className="flex items-start gap-2">
-                      <span>💙</span>
-                      <p>최근 기분이 좋지 않으신 것 같아요. 충분한 휴식을 취해보세요.</p>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span>🌱</span>
-                      <p>산책이나 가벼운 운동으로 기분을 전환해보는 것은 어떨까요?</p>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-start gap-2">
-                      <span>✨</span>
-                      <p>좋은 감정 상태를 잘 유지하고 계시네요!</p>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span>📝</span>
-                      <p>긍정적인 순간들을 더 자주 기록해보세요.</p>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
       </div>
     </div>
   );

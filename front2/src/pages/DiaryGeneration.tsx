@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Headphones, PenTool, Brain, AlertTriangle, CheckCircle2, Loader2, Edit3 } from 'lucide-react';
 
@@ -8,9 +8,15 @@ interface ProcessStep {
   error?: string;
 }
 
+interface LocationState {
+  text?: string;
+  audioFile?: string;
+}
+
 export default function DiaryGeneration() {
   const navigate = useNavigate();
-  const audioBlob = localStorage.getItem("audioBlob");
+  const location = useLocation();
+  const { text: stateText, audioFile } = location.state as LocationState || {};
   const selectedDate = localStorage.getItem("selectedDate"); // 선택된 날짜 확인
   const [dots, setDots] = useState('');
   const [fadeClass, setFadeClass] = useState('opacity-100');
@@ -22,10 +28,13 @@ export default function DiaryGeneration() {
         { status: 'waiting' }, // 감정 분석
       ]);
 
+  // text 우선순위: state로 받은 text > localStorage의 transcribedText
+  const text = stateText || localStorage.getItem('transcribedText') || '';
+
   const dotsRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (!audioBlob) {
+    if (!audioFile && !text) {
       navigate('/');
       return;
     }
@@ -40,7 +49,7 @@ export default function DiaryGeneration() {
     return () => {
       if (dotsRef.current) clearInterval(dotsRef.current);
     };
-  }, [audioBlob, navigate]);
+  }, [audioFile, text, navigate]);
 
   const updateStepStatus = (index: number, status: ProcessStep['status'], error?: string) => {
     setSteps(prev => prev.map((step, i) => 
@@ -52,42 +61,13 @@ export default function DiaryGeneration() {
     try {
       const userId = localStorage.getItem('userId') || 'default';
       
-      // 1. STT 처리
+      // 1. STT 처리 (이미 Recording에서 완료됨)
       updateStepStatus(0, 'processing');
-      const base64Audio = localStorage.getItem('audioBlob');
-      if (!base64Audio) {
-        throw new Error('음성 데이터를 찾을 수 없습니다.');
+      if (!text) {
+        throw new Error('음성 변환 텍스트를 찾을 수 없습니다.');
       }
-
-      // Base64를 Blob으로 변환
-      const binaryString = window.atob(base64Audio);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      const audioBlob = new Blob([bytes], { type: 'audio/wav' });
-
-      // FormData 생성
-      const formData = new FormData();
-      formData.append('audio', audioBlob, 'recording.wav');
-
-      const sttResponse = await fetch('http://localhost:8000/api/speech-to-text', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!sttResponse.ok) {
-        const errorData = await sttResponse.json().catch(() => ({}));
-        throw new Error(errorData.detail || errorData.message || '음성 변환 실패');
-      }
-
-      const sttResult = await sttResponse.json();
-      if (!sttResult.success || !sttResult.text) {
-        throw new Error(sttResult.message || '음성 변환 결과가 없습니다.');
-      }
-      
       updateStepStatus(0, 'completed');
-      localStorage.setItem("transcribedText", sttResult.text);
+      localStorage.setItem("transcribedText", text);
 
       // 2. 만화 생성
       const comicResponse = await fetch('http://localhost:8002/api/diary-comic', {
@@ -96,7 +76,7 @@ export default function DiaryGeneration() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          raw_text: sttResult.text,
+          raw_text: text,
           user_name: '나', // 또는 사용자 입력값
           gender: 'male'   // 또는 사용자 입력값
         }),
@@ -132,7 +112,7 @@ export default function DiaryGeneration() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          text: sttResult.text,
+          text: text,
           user_id: userId
         }),
       });
@@ -202,6 +182,11 @@ export default function DiaryGeneration() {
       updateStepStatus(2, 'completed');
 
       // 모든 처리가 완료되면 결과 페이지로 이동
+      // 선택된 감정 정보도 analysisResult에 포함
+      let selectedEmotion = null;
+      try {
+        selectedEmotion = JSON.parse(localStorage.getItem('selectedEmotion') || 'null');
+      } catch {}
       const analysisResult = {
         emotion_analysis: {
           primary_emotion: emotionResult.primary_emotion,
@@ -215,12 +200,12 @@ export default function DiaryGeneration() {
           style: feedbackResult.style,
           confidence: feedbackResult.confidence
         },
-        original_text: sttResult.text,
+        original_text: text,
         diary_text: diaryResult.diary_text, // 일기체 변환된 텍스트
         comic_data: processedComicResult,
-        selected_date: selectedDate // 선택된 날짜 포함
+        selected_date: selectedDate, // 선택된 날짜 포함
+        selected_emotion: selectedEmotion // 감정 선택 정보 포함
       };
-
       // 결과 저장 후 페이지 이동
       localStorage.setItem('analysisResult', JSON.stringify(analysisResult));
       navigate('/diary-feedback');

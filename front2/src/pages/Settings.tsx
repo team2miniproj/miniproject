@@ -69,13 +69,6 @@ const Settings = () => {
       time: "09:00, 15:00, 21:00"
     },
     {
-      id: "weekly_review",
-      title: "주간 감정 리포트",
-      description: "매주 월요일 감정 통계를 보내드립니다",
-      enabled: false,
-      time: "월요일 09:00"
-    },
-    {
       id: "streak_reminder",
       title: "연속 작성 격려",
       description: "연속으로 일기를 작성할 때 격려 메시지를 보냅니다",
@@ -449,16 +442,18 @@ const Settings = () => {
       {loadingLock && <div className="p-6 text-center text-muted-foreground">보안 설정 불러오는 중...</div>}
       {/* 헤더 */}
       <div className="bg-white p-8 pt-16 rounded-b-2xl mb-10 border-b border-orange-100">
-        <div className="flex items-center mb-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate(-1)}
-            className="h-10 w-10 text-orange-400 hover:bg-orange-100/60 rounded-full font-hakgyoansim mr-4"
-          >
-            <ArrowLeft className="h-6 w-6" />
-          </Button>
-          <div className="flex-1" />
+        <div className="w-full max-w-2xl mx-auto">
+          <div className="flex items-center mb-4">
+            <Button
+              variant="ghost"
+              onClick={() => navigate(-1)}
+              className="text-orange-500 hover:bg-orange-100/60 rounded-full font-hakgyoansim px-4 py-2 ml-[1px]"
+            >
+              <ArrowLeft className="w-5 h-5 mr-2" />
+              뒤로 가기
+            </Button>
+            <div className="flex-1" />
+          </div>
         </div>
         <div className="text-center">
           <h1 className="text-3xl font-bold font-hakgyoansim text-orange-500 mb-2">환경설정</h1>
