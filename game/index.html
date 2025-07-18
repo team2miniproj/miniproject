@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>고양이 점프 게임</title>
+    <style>
+        @font-face {
+            font-family: 'NanumBanJjagBanJjagByeor';
+            src: url('./NanumBanJjagBanJjagByeor.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        
+        body {
+            margin: 0;
+            padding: 5px;
+            background: #f5f5f0;
+            font-family: 'NanumBanJjagBanJjagByeor', cursive;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .diary-container {
+            width: min(900px, calc(100vw - 10px));
+            height: calc(100vh - 10px);
+            max-width: 900px;
+            background: #fefefe;
+            border: 3px solid #2a2a2a;
+            border-radius: 8px;
+            position: relative;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            transform: rotate(-0.5deg);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 손글씨 느낌의 헤더 */
+        .diary-header-visual {
+            height: 7.5vh;
+            background: #fafafa;
+            border-bottom: 2px solid #2a2a2a;
+            border-bottom-style: dashed;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 min(30px, 3vw);
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .diary-header-visual::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                #2a2a2a 10%, 
+                transparent 15%, 
+                #2a2a2a 20%, 
+                transparent 25%,
+                #2a2a2a 30%,
+                transparent 100%);
+        }
+
+        .diary-title-visual {
+            height: 7.5vh;
+            background: #fefefe;
+            border-bottom: 2px solid #2a2a2a;
+            display: flex;
+            align-items: center;
+            padding: 0 min(30px, 3vw);
+            font-size: min(24px, 4vw);
+            font-weight: 400;
+            color: #2a2a2a;
+            position: relative;
+            transform: rotate(0.2deg);
+            flex-shrink: 0;
+        }
+
+        .diary-title-visual::before {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 20px;
+            right: 20px;
+            height: 1px;
+            background: #2a2a2a;
+            transform: rotate(-0.1deg);
+        }
+
+        .main-content-area {
+            height: 35vh;
+            background: #fefefe;
+            border-bottom: 3px solid #2a2a2a;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .main-content-area::before {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: repeating-linear-gradient(
+                90deg,
+                #2a2a2a 0px,
+                #2a2a2a 2px,
+                transparent 2px,
+                transparent 8px
+            );
+        }
+
+        .grid-bottom {
+            height: 50vh;
+            background: #fefefe;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        /* 손그림 느낌의 격자 - 정사각형 격자 */
+        .grid-bottom::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                repeating-linear-gradient(
+                    90deg,
+                    transparent 0px,
+                    transparent calc(var(--grid-size) - 2px),
+                    #bbb calc(var(--grid-size) - 2px),
+                    #bbb var(--grid-size)
+                ),
+                repeating-linear-gradient(
+                    0deg,
+                    transparent 0px,
+                    transparent calc(var(--grid-size) - 2px),
+                    #bbb calc(var(--grid-size) - 2px),
+                    #bbb var(--grid-size)
+                );
+            opacity: 0.6;
+            --grid-size: 45px;
+        }
+
+        /* 손글씨 스타일 텍스트 */
+        .handwritten {
+            font-family: 'NanumBanJjagBanJjagByeor', cursive;
+            font-weight: 400;
+            color: #2a2a2a;
+            transform: rotate(-0.3deg);
+        }
+
+        .weather-icons {
+            font-size: min(24px, 4vw);
+            display: flex;
+            gap: min(12px, 2vw);
+            transform: rotate(0.5deg);
+        }
+
+        .diary-header {
+            height: 80px;
+            display: none;
+        }
+
+        .diary-title {
+            height: 60px;
+            display: none;
+        }
+
+        .diary-content {
+            height: 1060px;
+            background: white;
+            position: relative;
+        }
+
+        #gameContainer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: rgba(254, 254, 254, 0.95);
+        }
+
+        #gameCanvas {
+            display: block;
+            background: rgba(254, 254, 254, 0.95);
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+
+        #gameInfo {
+            position: absolute;
+            top: min(15px, 2vh);
+            right: min(20px, 3vw);
+            font-size: min(22px, 4vw);
+            color: #2a2a2a;
+            font-weight: 700;
+            font-family: 'NanumBanJjagBanJjagByeor', cursive;
+            background: rgba(255, 255, 255, 0.9);
+            padding: min(6px, 1vw) min(12px, 2vw);
+            border-radius: 8px;
+            border: 2px solid #2a2a2a;
+            transform: rotate(-1deg);
+            box-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        #instructions {
+            position: absolute;
+            bottom: min(60px, 8vh);
+            left: 50%;
+            transform: translateX(-50%) rotate(0.3deg);
+            text-align: center;
+            color: #2a2a2a;
+            font-size: min(18px, 3vw);
+            font-family: 'NanumBanJjagBanJjagByeor', cursive;
+            background: rgba(255, 255, 255, 0.9);
+            padding: min(8px, 1vh) min(16px, 2.5vw);
+            border-radius: 10px;
+            border: 2px dashed #2a2a2a;
+            font-weight: 400;
+            box-shadow: 2px 2px 6px rgba(0,0,0,0.1);
+            white-space: nowrap;
+        }
+
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-0.5deg);
+            font-size: min(32px, 5vw);
+            color: #2a2a2a;
+            text-align: center;
+            display: none;
+            font-weight: 700;
+            font-family: 'NanumBanJjagBanJjagByeor', cursive;
+            background: rgba(255, 255, 255, 0.98);
+            padding: min(35px, 5vw);
+            border-radius: 20px;
+            border: 3px solid #2a2a2a;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            max-width: 90vw;
+            box-sizing: border-box;
+        }
+
+        #gameOver div {
+            margin: min(18px, 2vh) 0;
+        }
+
+        #gameOver .restart {
+            font-size: min(22px, 3.5vw);
+            margin-top: min(25px, 3vh);
+            font-weight: 400;
+        }
+
+        .grid-area {
+            display: none;
+        }
+
+        #currentDate {
+            font-size: min(22px, 3.5vw);
+            font-weight: 400;
+        }
+
+        /* 모바일 전용 스타일 */
+        @media (max-width: 768px) {
+            body {
+                padding: 2px;
+            }
+            
+            .diary-container {
+                transform: rotate(0deg);
+                width: calc(100vw - 4px);
+                height: calc(100vh - 4px);
+                border-radius: 12px;
+            }
+            
+            .diary-header-visual {
+                height: 7.5vh;
+                padding: 0 15px;
+            }
+            
+            .diary-title-visual {
+                height: 7.5vh;
+                padding: 0 15px;
+                font-size: 18px;
+            }
+            
+            .main-content-area {
+                height: 35vh;
+            }
+            
+            .grid-bottom {
+                height: 50vh;
+            }
+            
+            .grid-bottom::before {
+                --grid-size: 35px;
+            }
+            
+            #instructions {
+                font-size: 14px;
+                padding: 6px 12px;
+                bottom: 50px;
+            }
+            
+            #gameInfo {
+                font-size: 18px;
+                top: 10px;
+                right: 15px;
+                padding: 4px 8px;
+            }
+            
+            #gameOver {
+                font-size: 24px;
+                padding: 20px;
+            }
+            
+            #gameOver .restart {
+                font-size: 18px;
+                margin-top: 15px;
+            }
+            
+            #currentDate {
+                font-size: 16px;
+            }
+            
+            .weather-icons {
+                font-size: 18px;
+                gap: 8px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .diary-title-visual {
+                font-size: 16px;
+            }
+            
+            .main-content-area {
+                height: 35vh;
+            }
+            
+            .grid-bottom {
+                height: 50vh;
+            }
+            
+            .grid-bottom::before {
+                --grid-size: 28px;
+            }
+            
+            #instructions {
+                font-size: 12px;
+                padding: 4px 10px;
+                bottom: 40px;
+            }
+            
+            #gameInfo {
+                font-size: 16px;
+            }
+            
+            #currentDate {
+                font-size: 14px;
+            }
+            
+            .weather-icons {
+                font-size: 16px;
+                gap: 6px;
+            }
+        }
+        
+        /* 태블릿/큰 화면용 */
+        @media (min-width: 1024px) {
+            .grid-bottom::before {
+                --grid-size: 50px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="diary-container">
+        <!-- 일기장 헤더 -->
+        <div class="diary-header-visual">
+            <div class="handwritten" id="currentDate">날짜: </div>
+            <div class="weather-icons">☀️ ☁️ ☁️ 🌧️ ⛄ ❄️</div>
+        </div>
+        
+        <!-- 일기 제목 -->
+        <div class="diary-title-visual handwritten">
+            제목: AI가 일기를 생성하는중 . . .
+        </div>
+        
+        <!-- 메인 콘텐츠 영역 (게임이 들어갈 큰 네모칸) -->
+        <div class="main-content-area">
+            <div id="gameContainer">
+                <canvas id="gameCanvas"></canvas>
+                <div id="gameInfo">
+                    <div id="score">00000</div>
+                </div>
+                
+                <div id="gameOver">
+                    <div>G A M E &nbsp;&nbsp; O V E R</div>
+                    <div class="restart">화면 아무 곳이나 터치하거나 스페이스바를 눌러 다시 시작하세요</div>
+                </div>
+            </div>
+
+            <div id="instructions">화면 아무 곳이나 터치하거나 스페이스바를 눌러 점프하세요!</div>
+        </div>
+        
+        <!-- 격자 영역 -->
+        <div class="grid-bottom"></div>
+    </div>
+
+    <script>
+        // 게임 변수들
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const gameOverElement = document.getElementById('gameOver');
+
+        let gameRunning = false;
+        let score = 0;
+        let gameSpeed = 2;
+        let groundY = 420; // 초기값, 리사이즈 시 재계산됨
+        let scaleFactor = 1; // 스케일 팩터
+
+        // 고양이 객체
+        const cat = {
+            x: 50,
+            y: groundY - 20,
+            width: 24,
+            height: 20,
+            velocityY: 0,
+            jumping: false,
+            grounded: true
+        };
+
+        // 장애물 배열
+        let obstacles = [];
+
+        // 캔버스 크기 조정 함수
+        function resizeCanvas() {
+            const container = document.getElementById('gameContainer');
+            const containerRect = container.getBoundingClientRect();
+            
+            // 기본 해상도 설정
+            const baseWidth = 900;
+            const baseHeight = 600;
+            
+            // 컨테이너 크기에 맞춰 스케일 계산
+            const scaleX = containerRect.width / baseWidth;
+            const scaleY = containerRect.height / baseHeight;
+            scaleFactor = Math.min(scaleX, scaleY);
+            
+            // 캔버스 크기 설정
+            canvas.width = containerRect.width;
+            canvas.height = containerRect.height;
+            
+            // groundY 재계산 - 35vh 게임 영역에 맞게 조정
+            // 바닥선을 게임 공간 하단으로 설정하여 고양이와 장애물이 아래쪽에 위치
+            if (window.innerWidth <= 768) {
+                groundY = canvas.height * 0.9; // 모바일에서 하단으로
+            } else {
+                groundY = canvas.height * 0.85;
+            }
+            
+            // 고양이 위치 재설정
+            if (cat.grounded) {
+                cat.y = groundY - 20;
+            }
+            
+            // 장애물 위치 재조정
+            obstacles.forEach(obstacle => {
+                obstacle.y = groundY - obstacle.height;
+            });
+        }
+
+        // 화면 크기 변경 감지
+        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('orientationchange', () => {
+            setTimeout(resizeCanvas, 100);
+        });
+
+        // 게임 초기화
+        function initGame() {
+            gameRunning = true;
+            score = 0;
+            gameSpeed = 2;
+            obstacles = [];
+            cat.y = groundY - 20;
+            cat.velocityY = 0;
+            cat.jumping = false;
+            cat.grounded = true;
+            gameOverElement.style.display = 'none';
+            updateScore();
+        }
+
+        // 점수 업데이트
+        function updateScore() {
+            scoreElement.textContent = score.toString().padStart(5, '0');
+        }
+
+        // 픽셀 아트 고양이 그리기 (스케일 적용)
+        function drawCat() {
+            const scale = scaleFactor;
+            
+            // 고양이 몸체 (회색)
+            ctx.fillStyle = '#888888';
+            ctx.fillRect((cat.x + 4) * scale, (cat.y + 8) * scale, 16 * scale, 8 * scale);
+            
+            // 고양이 머리 (회색)
+            ctx.fillRect((cat.x + 8) * scale, cat.y * scale, 12 * scale, 12 * scale);
+            
+            // 고양이 귀 (회색)
+            ctx.fillStyle = '#888888';
+            ctx.fillRect((cat.x + 10) * scale, (cat.y - 2) * scale, 3 * scale, 4 * scale);
+            ctx.fillRect((cat.x + 15) * scale, (cat.y - 2) * scale, 3 * scale, 4 * scale);
+            
+            // 귀 안쪽 (분홍)
+            ctx.fillStyle = '#FFB6C1';
+            ctx.fillRect((cat.x + 11) * scale, cat.y * scale, 1 * scale, 2 * scale);
+            ctx.fillRect((cat.x + 16) * scale, cat.y * scale, 1 * scale, 2 * scale);
+            
+            // 얼굴 흰색 부분 → 회색으로 변경
+            ctx.fillStyle = '#888888';
+            ctx.fillRect((cat.x + 10) * scale, (cat.y + 4) * scale, 8 * scale, 6 * scale);
+            ctx.fillRect((cat.x + 12) * scale, (cat.y + 2) * scale, 4 * scale, 2 * scale);
+            
+            // 눈
+            ctx.fillStyle = '#000000';
+            ctx.fillRect((cat.x + 12) * scale, (cat.y + 3) * scale, 1 * scale, 1 * scale);
+            ctx.fillRect((cat.x + 15) * scale, (cat.y + 3) * scale, 1 * scale, 1 * scale);
+            
+            // 코
+            ctx.fillStyle = '#FFB6C1';
+            ctx.fillRect((cat.x + 13) * scale, (cat.y + 5) * scale, 2 * scale, 1 * scale);
+            
+            // 입
+            ctx.fillStyle = '#000000';
+            ctx.fillRect((cat.x + 13) * scale, (cat.y + 6) * scale, 1 * scale, 1 * scale);
+            ctx.fillRect((cat.x + 15) * scale, (cat.y + 6) * scale, 1 * scale, 1 * scale);
+            
+            // 몸체 흰색 부분 → 회색으로 변경
+            ctx.fillStyle = '#888888';
+            ctx.fillRect((cat.x + 6) * scale, (cat.y + 10) * scale, 12 * scale, 4 * scale);
+            
+            // 다리 (회색)
+            ctx.fillStyle = '#888888';
+            ctx.fillRect((cat.x + 6) * scale, (cat.y + 16) * scale, 3 * scale, 4 * scale);
+            ctx.fillRect((cat.x + 11) * scale, (cat.y + 16) * scale, 3 * scale, 4 * scale);
+            ctx.fillRect((cat.x + 16) * scale, (cat.y + 16) * scale, 3 * scale, 4 * scale);
+            
+            // 꼬리 (엉덩이 뒤쪽, 더 길고 자연스럽게)
+            ctx.fillRect((cat.x + 2) * scale, (cat.y + 12) * scale, 4 * scale, 2 * scale);
+            ctx.fillRect(cat.x * scale, (cat.y + 10) * scale, 4 * scale, 2 * scale);
+            ctx.fillRect((cat.x - 2) * scale, (cat.y + 8) * scale, 3 * scale, 2 * scale);
+        }
+
+        // 연필 그리기 (스케일 적용)
+        function drawPencil(obstacle) {
+            const scale = scaleFactor;
+            
+            // 연필 몸통 (노란색)
+            ctx.fillStyle = '#FFD700';
+            ctx.fillRect((obstacle.x + 2) * scale, (obstacle.y + 8) * scale, 8 * scale, (obstacle.height - 12) * scale);
+            
+            // 연필 끝 (나무색)
+            ctx.fillStyle = '#D2691E';
+            ctx.fillRect((obstacle.x + 3) * scale, obstacle.y * scale, 6 * scale, 8 * scale);
+            
+            // 연필심 (검은색)
+            ctx.fillStyle = '#2F2F2F';
+            ctx.fillRect((obstacle.x + 4) * scale, obstacle.y * scale, 4 * scale, 4 * scale);
+            
+            // 금속 고리 (은색)
+            ctx.fillStyle = '#C0C0C0';
+            ctx.fillRect((obstacle.x + 2) * scale, (obstacle.y + obstacle.height - 8) * scale, 8 * scale, 3 * scale);
+            
+            // 지우개 (분홍색)
+            ctx.fillStyle = '#FFB6C1';
+            ctx.fillRect((obstacle.x + 3) * scale, (obstacle.y + obstacle.height - 5) * scale, 6 * scale, 5 * scale);
+            
+            // 연필 브랜드 (검은색 선)
+            ctx.fillStyle = '#000000';
+            ctx.fillRect((obstacle.x + 3) * scale, (obstacle.y + 15) * scale, 6 * scale, 1 * scale);
+            ctx.fillRect((obstacle.x + 4) * scale, (obstacle.y + 18) * scale, 4 * scale, 1 * scale);
+        }
+
+        // 지우개 그리기 (스케일 적용)
+        function drawEraser(obstacle) {
+            const scale = scaleFactor;
+            const topHeight = Math.floor(obstacle.height * 0.1);
+            
+            // 지우개 상단 (회색)
+            ctx.fillStyle = '#D3D3D3';
+            ctx.fillRect(obstacle.x * scale, obstacle.y * scale, obstacle.width * scale, (topHeight + 2) * scale);
+            
+            // 지우개 몸체 (분홍색)
+            ctx.fillStyle = '#FFB6C1';
+            ctx.fillRect(obstacle.x * scale, (obstacle.y + topHeight + 2) * scale, obstacle.width * scale, (obstacle.height - topHeight - 2) * scale);
+            
+            // 지우개 옆면 (어두운 분홍색)
+            ctx.fillStyle = '#FF91A4';
+            ctx.fillRect((obstacle.x + obstacle.width) * scale, (obstacle.y + topHeight + 2) * scale, 3 * scale, (obstacle.height - topHeight - 2) * scale);
+            
+            // 지우개 옆면 상단 (어두운 회색)
+            ctx.fillStyle = '#A9A9A9';
+            ctx.fillRect((obstacle.x + obstacle.width) * scale, obstacle.y * scale, 3 * scale, (topHeight + 2) * scale);
+            
+            // 브랜드 라벨 (흰색)
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect((obstacle.x + 2) * scale, (obstacle.y + obstacle.height/2 - 3) * scale, (obstacle.width - 4) * scale, 6 * scale);
+            
+            // 브랜드 텍스트 (검은색)
+            ctx.fillStyle = '#000000';
+            ctx.fillRect((obstacle.x + 4) * scale, (obstacle.y + obstacle.height/2 - 1) * scale, (obstacle.width - 8) * scale, 1 * scale);
+            ctx.fillRect((obstacle.x + 4) * scale, (obstacle.y + obstacle.height/2 + 1) * scale, (obstacle.width - 8) * scale, 1 * scale);
+        }
+
+        // 장애물 그리기
+        function drawObstacle(obstacle) {
+            if (obstacle.type === 'pencil') {
+                drawPencil(obstacle);
+            } else if (obstacle.type === 'eraser') {
+                drawEraser(obstacle);
+            }
+        }
+
+        // 구름 그리기 (스케일 적용)
+        function drawCloud(x, y) {
+            const scale = scaleFactor;
+            ctx.fillStyle = 'rgba(200, 200, 200, 0.8)';
+            // 구름 몸체
+            ctx.fillRect(x * scale, y * scale, 20 * scale, 8 * scale);
+            ctx.fillRect((x + 8) * scale, (y - 4) * scale, 16 * scale, 8 * scale);
+            ctx.fillRect((x + 16) * scale, y * scale, 20 * scale, 8 * scale);
+            ctx.fillRect((x + 12) * scale, (y + 4) * scale, 16 * scale, 6 * scale);
+        }
+
+        // 배경 그리기
+        function drawBackground() {
+            const currentTime = Date.now() * 0.001;
+            const canvasWidth = canvas.width / scaleFactor;
+            
+            // 구름들 (스케일 적용) - 게임 영역 상단에 배치
+            const cloudYOffset = window.innerWidth <= 768 ? (canvas.height * 0.1) / scaleFactor : 0;
+            
+            const cloud1Speed = 0.4;
+            const cloud1X = canvasWidth + 40 - (currentTime * cloud1Speed * 60) % (canvasWidth + 120);
+            const cloud1Y = 30 + cloudYOffset;
+            drawCloud(cloud1X, cloud1Y);
+            
+            const cloud2Speed = 0.25;
+            const cloud2X = canvasWidth + 60 - (currentTime * cloud2Speed * 45) % (canvasWidth + 140);
+            const cloud2Y = 50 + cloudYOffset;
+            drawCloud(cloud2X, cloud2Y);
+            
+            const cloud3Speed = 0.15;
+            const cloud3X = canvasWidth + 20 - (currentTime * cloud3Speed * 35) % (canvasWidth + 100);
+            const cloud3Y = 20 + cloudYOffset;
+            drawCloud(cloud3X, cloud3Y);
+            
+            const cloud4Speed = 0.1;
+            const cloud4X = canvasWidth + 80 - (currentTime * cloud4Speed * 25) % (canvasWidth + 160);
+            const cloud4Y = 60 + cloudYOffset;
+            drawCloud(cloud4X, cloud4Y);
+            
+            // 바닥선 그리기
+            ctx.strokeStyle = '#535353';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, groundY);
+            ctx.lineTo(canvas.width, groundY);
+            ctx.stroke();
+            
+            // 점선 바닥 무늬
+            ctx.setLineDash([5, 10]);
+            ctx.beginPath();
+            ctx.moveTo(0, groundY + 10);
+            ctx.lineTo(canvas.width, groundY + 10);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        // 장애물 생성
+        function createObstacle() {
+            const canvasWidth = canvas.width / scaleFactor;
+            const minDistance = 120;
+            const maxDistance = 250;
+            const randomDistance = Math.random() * (maxDistance - minDistance) + minDistance;
+            
+            if (obstacles.length === 0 || obstacles[obstacles.length - 1].x < canvasWidth - randomDistance) {
+                const obstacleTypes = ['pencil', 'eraser'];
+                const type = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
+                
+                let obstacle = {
+                    x: canvasWidth,
+                    type: type
+                };
+                
+                if (type === 'pencil') {
+                    obstacle.width = 12;
+                    obstacle.height = 40;
+                    obstacle.y = groundY - obstacle.height;
+                } else if (type === 'eraser') {
+                    obstacle.width = 16;
+                    obstacle.height = Math.random() > 0.5 ? 20 : 30;
+                    obstacle.y = groundY - obstacle.height;
+                }
+                
+                obstacles.push(obstacle);
+            }
+        }
+
+        // 충돌 감지
+        function checkCollision() {
+            for (let obstacle of obstacles) {
+                if (cat.x < obstacle.x + obstacle.width &&
+                    cat.x + cat.width > obstacle.x &&
+                    cat.y < obstacle.y + obstacle.height &&
+                    cat.y + cat.height > obstacle.y) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // 게임 업데이트
+        function updateGame() {
+            if (!gameRunning) return;
+
+            // 고양이 물리 처리
+            if (cat.jumping) {
+                cat.velocityY += 0.5;
+                cat.y += cat.velocityY;
+                
+                if (cat.y >= groundY - 20) {
+                    cat.y = groundY - 20;
+                    cat.velocityY = 0;
+                    cat.jumping = false;
+                    cat.grounded = true;
+                }
+            }
+
+            // 장애물 업데이트
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].x -= gameSpeed;
+                
+                if (obstacles[i].x + obstacles[i].width < 0) {
+                    obstacles.splice(i, 1);
+                    score += 1;
+                    updateScore();
+                }
+            }
+
+            createObstacle();
+
+            if (checkCollision()) {
+                gameRunning = false;
+                gameOverElement.style.display = 'block';
+            }
+
+            if (score > 0 && score % 100 === 0) {
+                gameSpeed += 0.2;
+            }
+        }
+
+        // 게임 렌더링
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            drawBackground();
+            drawCat();
+            
+            for (let obstacle of obstacles) {
+                drawObstacle(obstacle);
+            }
+        }
+
+        // 게임 루프
+        function gameLoop() {
+            updateGame();
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // 점프 함수
+        function jump() {
+            if (!gameRunning) {
+                initGame();
+            } else if (cat.grounded) {
+                cat.velocityY = -12;
+                cat.jumping = true;
+                cat.grounded = false;
+            }
+        }
+
+        // 키보드 입력 처리
+        document.addEventListener('keydown', function(event) {
+            if (event.code === 'Space') {
+                event.preventDefault();
+                jump();
+            }
+        });
+
+        // 터치 이벤트 처리 - 화면 전체에서 동작
+        document.addEventListener('touchstart', function(event) {
+            event.preventDefault();
+            jump();
+        });
+
+        document.addEventListener('click', function(event) {
+            event.preventDefault();
+            jump();
+        });
+
+        // 오늘 날짜 설정
+        function setCurrentDate() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = today.getMonth() + 1;
+            const day = today.getDate();
+            
+            document.getElementById('currentDate').textContent = `날짜: ${year}년 ${month}월 ${day}일`;
+        }
+
+        // 게임 시작
+        setCurrentDate();
+        resizeCanvas();
+        initGame();
+        gameLoop();
+    </script>
+</body>
+</html> 
