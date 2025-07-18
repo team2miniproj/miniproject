@@ -254,58 +254,68 @@ export default function DiaryGeneration() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-100 to-rose-200 transition-all duration-1000 ease-in-out flex flex-col relative">
-      {/* 상단 뒤로가기 버튼 */}
-      <div className="flex items-center justify-between p-6 pt-12">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleBack}
-          className="text-rose-800 hover:bg-rose-200/50"
-        >
-          <ArrowLeft className="h-6 w-6" />
-        </Button>
-      </div>
-
-      {/* 메인 컨텐츠 */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 -mt-20">
-        <h1 className="text-2xl font-bold text-rose-800 mb-8">
-          AI가 당신의 이야기를 분석하고 있어요{dots}
-        </h1>
-
-        <div className="w-full max-w-md space-y-6">
-          {steps.map((step, index) => (
-            <div
-              key={index}
-              className={`bg-white/80 backdrop-blur-sm rounded-lg p-4 flex items-center justify-between
-                ${step.status === 'processing' ? 'border-2 border-rose-400' : 'border border-rose-200'}
-                transition-all duration-300`}
-            >
-              <div className="flex items-center gap-3">
-                {getStepIcon2(index)}
-                <div>
-                  <p className="font-medium text-rose-800">{getStepLabel(index)}</p>
-                  {step.error && (
-                    <p className="text-sm text-red-500 mt-1">{step.error}</p>
-                  )}
+    <div className="min-h-screen flex flex-col items-center py-8 bg-[#F9F9FA]">
+      {/* 폰트 적용 스타일 */}
+      <style>{`
+        @font-face {
+          font-family: 'HakgyoansimDoldamB';
+          src: url('/src/assets/fonts/HakgyoansimDoldamB.otf') format('opentype');
+          font-weight: normal;
+          font-style: normal;
+        }
+        .diary-font { font-family: 'HakgyoansimDoldamB', 'Nanum Pen Script', sans-serif; }
+      `}</style>
+      {/* 종이 느낌 메인 박스 */}
+      <div className="w-full max-w-lg mx-auto p-0 sm:p-0 rounded-[18px] shadow-[0_2px_16px_0_rgba(235,84,5,0.06)] border border-[#F5E9DE] diary-font bg-[#FFF9F4] mt-10">
+        {/* 상단 뒤로가기 버튼 */}
+        <div className="flex items-center justify-between px-6 pt-8 pb-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleBack}
+            className="text-[#EB5405] hover:bg-orange-100/60"
+          >
+            <ArrowLeft className="h-6 w-6" />
+          </Button>
+          <h1 className="text-xl font-bold text-[#EB5405] diary-font">AI 분석 중</h1>
+          <div className="w-8" />
+        </div>
+        {/* 메인 컨텐츠 */}
+        <div className="flex flex-col items-center justify-center px-8 pb-12">
+          <h2 className="text-lg font-semibold text-[#EB5405] mb-6 diary-font">
+            AI가 당신의 이야기를 분석하고 있어요{dots}
+          </h2>
+          <div className="w-full space-y-5">
+            {steps.map((step, index) => (
+              <div
+                key={index}
+                className={`bg-white/90 rounded-xl border border-[#F5E9DE] p-5 flex items-center justify-between shadow-sm diary-font transition-all duration-300 ${step.status === 'processing' ? 'border-2 border-[#EB5405] bg-orange-50/60' : ''}`}
+              >
+                <div className="flex items-center gap-3">
+                  {getStepIcon2(index)}
+                  <div>
+                    <p className="font-medium text-[#EB5405] diary-font">{getStepLabel(index)}</p>
+                    {step.error && (
+                      <p className="text-sm text-red-500 mt-1">{step.error}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="w-6 h-6">
+                  {getStepIcon(step)}
                 </div>
               </div>
-              <div className="w-6 h-6">
-                {getStepIcon(step)}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
+          {steps.some(step => step.status === 'error') && (
+            <Button
+              variant="default"
+              onClick={() => navigate('/')}
+              className="mt-8 bg-[#EB5405] hover:bg-[#FF8A3D] text-white px-8 py-3 text-lg rounded-lg font-bold shadow"
+            >
+              홈으로 돌아가기
+            </Button>
+          )}
         </div>
-
-        {steps.some(step => step.status === 'error') && (
-          <Button
-            variant="secondary"
-            onClick={() => navigate('/')}
-            className="mt-8 bg-rose-500 text-white hover:bg-rose-600"
-          >
-            홈으로 돌아가기
-          </Button>
-        )}
       </div>
     </div>
   );
