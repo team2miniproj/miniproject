@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Headphones, PenTool, Brain, AlertTriangle, CheckCircle2, Loader2, Edit3 } from 'lucide-react';
+import GameLoading from '@/components/GameLoading';
 
 interface ProcessStep {
   status: 'waiting' | 'processing' | 'completed' | 'error';
@@ -59,6 +60,7 @@ export default function DiaryGeneration() {
 
   const startProcessing = async () => {
     try {
+      const start = Date.now();
       const userId = localStorage.getItem('userId') || 'default';
       
       // 1. STT 처리 (이미 Recording에서 완료됨)
@@ -206,6 +208,12 @@ export default function DiaryGeneration() {
         selected_date: selectedDate, // 선택된 날짜 포함
         selected_emotion: selectedEmotion // 감정 선택 정보 포함
       };
+      // 최소 3초 로딩 보장
+      const elapsed = Date.now() - start;
+      const minLoading = 60000;
+      if (elapsed < minLoading) {
+        await new Promise(res => setTimeout(res, minLoading - elapsed));
+      }
       // 결과 저장 후 페이지 이동
       localStorage.setItem('analysisResult', JSON.stringify(analysisResult));
       navigate('/diary-feedback');
@@ -282,6 +290,7 @@ export default function DiaryGeneration() {
         </div>
         {/* 메인 컨텐츠 */}
         <div className="flex flex-col items-center justify-center px-8 pb-12">
+          <GameLoading />
           <h2 className="text-lg font-semibold text-[#EB5405] mb-6 diary-font">
             AI가 당신의 이야기를 분석하고 있어요{dots}
           </h2>
